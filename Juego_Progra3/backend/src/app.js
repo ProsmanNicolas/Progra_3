@@ -99,9 +99,13 @@ app.use((error, req, res, next) => {
   });
 });
 
+// Exportar la app para Vercel
 module.exports = app;
-// Iniciar el servidor en el puerto 3001
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Servidor escuchando en http://localhost:${PORT}`);
-});
+
+// Solo iniciar servidor si NO está en Vercel (desarrollo local)
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`Servidor escuchando en http://localhost:${PORT}`);
+  });
+}
