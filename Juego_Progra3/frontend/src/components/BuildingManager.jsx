@@ -142,12 +142,6 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
     acc[type].push(building);
     return acc;
   }, {});
-    
-    const type = building.building_types?.name || building.name || 'Edificio Desconocido';
-    if (!acc[type]) acc[type] = [];
-    acc[type].push(building);
-    return acc;
-  }, {});
 
   return (
     <div className="p-6">
