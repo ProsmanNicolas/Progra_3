@@ -289,6 +289,18 @@ export default function Game({ onLogout }) {
     }
   };
 
+  const handleLogoutFromError = async () => {
+    try {
+      await logout();
+      if (onLogout) {
+        onLogout();
+      }
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      window.location.href = '/login';
+    }
+  };
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
@@ -296,7 +308,7 @@ export default function Game({ onLogout }) {
           <div className="text-6xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-red-400 mb-4">Error de Conexión</h2>
           <p className="text-gray-300 mb-6">{error}</p>
-          <div className="flex gap-3 justify-center">
+          <div className="flex gap-3 justify-center flex-wrap">
             <button 
               onClick={handleCreateVillage} 
               className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
@@ -308,6 +320,12 @@ export default function Game({ onLogout }) {
               className="btn-primary px-6 py-3 rounded-lg font-bold"
             >
               🔄 Recargar Página
+            </button>
+            <button 
+              onClick={handleLogoutFromError} 
+              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
+            >
+              🚪 Cerrar Sesión
             </button>
           </div>
         </div>
