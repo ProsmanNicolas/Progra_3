@@ -85,24 +85,31 @@ export default function TownHallUpgradeModal({ isOpen, onClose, townHall, userRe
 
       if (currentError) {
         console.error('Error loading current level config:', currentError);
+        setLoading(false);
         return;
       }
 
-      // Cargar configuración del siguiente nivel
-      const { data: nextConfig, error: nextError } = await supabase
-        .from('building_level_config')
-        .select('*')
-        .eq('building_type_id', townHall.building_type_id)
-        .eq('level', townHall.level + 1)
-        .single();
-
-      // No es error si no hay siguiente nivel (nivel máximo)
-      if (nextError && nextError.code !== 'PGRST116') {
-        console.error('Error loading next level config:', nextError);
-      }
-
       setLevelConfig(currentConfig);
-      setNextLevelConfig(nextConfig || null);
+
+      // Solo intentar cargar siguiente nivel si no estamos en nivel máximo (4)
+      if (townHall.level < 4) {
+        const { data: nextConfig, error: nextError } = await supabase
+          .from('building_level_config')
+          .select('*')
+          .eq('building_type_id', townHall.building_type_id)
+          .eq('level', townHall.level + 1)
+          .single();
+
+        if (nextError) {
+          console.log('No hay siguiente nivel disponible (nivel máximo alcanzado)');
+          setNextLevelConfig(null);
+        } else {
+          setNextLevelConfig(nextConfig);
+        }
+      } else {
+        // Nivel máximo alcanzado
+        setNextLevelConfig(null);
+      }
     } catch (error) {
       console.error('Error in loadLevelConfigs:', error);
     } finally {
@@ -183,7 +190,7 @@ export default function TownHallUpgradeModal({ isOpen, onClose, townHall, userRe
                 </h3>
                 <p className="text-gray-300 text-sm mb-2">{getDescriptionForLevel(townHall.level)}</p>
                 <div className="space-y-1 text-sm">
-                  <p className="text-gray-200">📦 Máximo edificios: <span className="font-semibold text-white">{getMaxBuildingsForLevel(townHall.level)}</span></p>
+                  <p className="text-gray-200">📦 Máximo edificios: <span className="font-semibold text-white">{townHallInfo?.currentMaxBuildings || getMaxBuildingsForLevel(townHall.level)}</span></p>
                   <p className="text-gray-200">🔓 Edificios disponibles: <span className="font-semibold text-white">{levelConfig.unlocks_buildings?.join(', ') || 'Todos los tipos básicos'}</span></p>
                 </div>
               </div>
