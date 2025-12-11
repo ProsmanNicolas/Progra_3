@@ -9,7 +9,12 @@ const {
   getTowerDefenseAssignments,
   getAllDefenseAssignments,
   getTargetDefensePower,
-  executeBattle
+  executeBattle,
+  // Nuevos endpoints de validación
+  canAffordTroops,
+  calculateAttackPower,
+  getAvailableForAttack,
+  getTroopCategories
 } = require('../controllers/troopController');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -33,5 +38,11 @@ router.get('/target-defense/:targetUserId', getTargetDefensePower);
 
 // Rutas de combate
 router.post('/battle', executeBattle);
+
+// Nuevas rutas de validación y cálculo
+router.post('/can-afford', canAffordTroops);
+router.post('/calculate-attack-power', calculateAttackPower);
+router.get('/available-for-attack', getAvailableForAttack);
+router.get('/categories', getTroopCategories);
 
 module.exports = router;

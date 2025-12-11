@@ -19,7 +19,12 @@ const {
   completeTroopTraining,
   getTrainingQueue,
   getTroopTypes,
-  getUserTroops
+  getUserTroops,
+  // Nuevos endpoints de validación
+  getBuildingLimits,
+  getUpgradeCost,
+  canUpgradeBuildingEndpoint,
+  getProductionRate
 } = require('../controllers/villageController');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -54,5 +59,11 @@ router.get('/user-troops', getUserTroops);
 router.get('/training-queue', getTrainingQueue);
 router.post('/training/start', startTroopTraining);
 router.post('/training/complete', completeTroopTraining);
+
+// Nuevas rutas de validación y cálculo
+router.get('/building-limits', getBuildingLimits);
+router.get('/buildings/:buildingId/upgrade-cost', getUpgradeCost);
+router.get('/buildings/:buildingId/can-upgrade', canUpgradeBuildingEndpoint);
+router.get('/buildings/:buildingId/production-rate', getProductionRate);
 
 module.exports = router;

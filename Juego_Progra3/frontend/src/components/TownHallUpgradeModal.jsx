@@ -9,22 +9,28 @@ export default function TownHallUpgradeModal({ isOpen, onClose, townHall, userRe
   const [loading, setLoading] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
   const [localUserResources, setLocalUserResources] = useState(null);
+  const [buildingLimits, setBuildingLimits] = useState(null);
 
   // Función para obtener descripción correcta basada en el nivel
-  const getDescriptionForLevel = (level) => {
-    const maxBuildings = getMaxBuildingsForLevel(level);
-    return `Nivel ${level} - Permite ${maxBuildings} edificios adicionales`;
-  };
-
-  // Función para calcular máximo de edificios basado en nivel (igual que el backend)
-  const getMaxBuildingsForLevel = (level) => {
-    switch (level) {
-      case 1: return 5;
-      case 2: return 10;
-      case 3: return 15;
-      case 4: return 25;
-      default: return 5;
+  const getDescriptionForLevel = async (level) => {
+    // Cargar desde backend si no tenemos los límites
+    if (!buildingLimits) {
+      try {
+        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+        const token = localStorage.getItem('auth-token');
+        const response = await fetch(`${API_BASE_URL}/api/village/building-limits`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const result = await response.json();
+        if (result.success) {
+          setBuildingLimits(result.data);
+          return `Nivel ${level} - Permite ${result.data.maxBuildings} edificios adicionales`;
+        }
+      } catch (error) {
+        console.error('Error cargando límites:', error);
+      }
     }
+    return `Nivel ${level}`;
   };
 
   useEffect(() => {
@@ -92,43 +98,28 @@ export default function TownHallUpgradeModal({ isOpen, onClose, townHall, userRe
     }
   };
 
-  const canUpgrade = () => {
+  // Validación simple de UI (el backend validará realmente)
+  const canUpgradeUI = () => {
     const resources = localUserResources || userResources;
     
     if (!nextLevelConfig || !resources) {
-      console.log('❌ canUpgrade: Faltan datos', { 
-        nextLevelConfig: !!nextLevelConfig, 
-        userResources: !!userResources,
-        localUserResources: !!localUserResources 
-      });
       return false;
     }
     
-    // Verificación de recursos con protección null
+    // Verificación básica de recursos para UI
     const hasWood = (resources.wood || 0) >= (nextLevelConfig.upgrade_cost_wood || 0);
     const hasStone = (resources.stone || 0) >= (nextLevelConfig.upgrade_cost_stone || 0);
     const hasFood = (resources.food || 0) >= (nextLevelConfig.upgrade_cost_food || 0);
     const hasIron = (resources.iron || 0) >= (nextLevelConfig.upgrade_cost_iron || 0);
     
-    const result = hasWood && hasStone && hasFood && hasIron;
-    
-    console.log('🔍 canUpgrade check:', {
-      resources,
-      nextLevelConfig: nextLevelConfig ? {
-        wood_cost: nextLevelConfig.upgrade_cost_wood,
-        stone_cost: nextLevelConfig.upgrade_cost_stone,
-        food_cost: nextLevelConfig.upgrade_cost_food,
-        iron_cost: nextLevelConfig.upgrade_cost_iron
-      } : null,
-      checks: { hasWood, hasStone, hasFood, hasIron },
-      result
+    return hasWood && hasStone && hasFood && hasIron;
     });
     
     return result;
   };
 
   const handleUpgrade = async () => {
-    if (!canUpgrade() || upgrading) return;
+    if (!canUpgradeUI() || upgrading) return;
 
     try {
       setUpgrading(true);
@@ -234,18 +225,18 @@ export default function TownHallUpgradeModal({ isOpen, onClose, townHall, userRe
                 {/* Botón de mejora */}
                 <button
                   onClick={handleUpgrade}
-                  disabled={!canUpgrade() || upgrading}
-                  className={`w-full py-3 px-4 rounded-lg font-bold text-lg transition-all ${
-                    canUpgrade() && !upgrading
+                  disabled={!canUpgradeUI() || upgrading}
+                  className={`w-full py-3 px-6 rounded-lg font-semibold text-lg transition-all ${
+                    canUpgradeUI() && !upgrading
                       ? 'bg-green-600 text-white hover:bg-green-700 hover:scale-105'
                       : 'bg-gray-600 text-gray-300 cursor-not-allowed'
                   }`}
                 >
-                  {upgrading ? 'Mejorando...' : canUpgrade() ? '⬆️ Mejorar Ayuntamiento' : '❌ Recursos insuficientes'}
+                  {upgrading ? 'Mejorando...' : canUpgradeUI() ? '⬆️ Mejorar Ayuntamiento' : '❌ Recursos insuficientes'}
                 </button>
 
                 {/* Debug info - mostrar detalles de los recursos */}
-                {!canUpgrade() && (localUserResources || userResources) && nextLevelConfig && (
+                {!canUpgradeUI() && (localUserResources || userResources) && nextLevelConfig && (
                   <div className="mt-2 p-2 bg-red-500 bg-opacity-20 border border-red-500 rounded text-xs">
                     <p className="font-semibold text-red-300 mb-1">Debug - Recursos actuales vs requeridos:</p>
                     <div className="grid grid-cols-2 gap-1 text-red-200">

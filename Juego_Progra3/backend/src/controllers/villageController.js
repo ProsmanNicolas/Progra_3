@@ -2126,6 +2126,257 @@ const getUserPopulation = async (req, res) => {
   }
 };
 
+// ========================================
+// NUEVOS ENDPOINTS - LÓGICA DE VALIDACIÓN
+// ========================================
+
+/**
+ * Obtener límites de edificios según nivel del ayuntamiento
+ */
+const getBuildingLimits = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Obtener ayuntamiento del usuario
+    const { data: townHall, error: townHallError } = await supabase
+      .from('user_buildings')
+      .select('*, building_types(*)')
+      .eq('user_id', userId)
+      .eq('building_types.name', 'Ayuntamiento')
+      .single();
+
+    if (townHallError) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontró el ayuntamiento'
+      });
+    }
+
+    const townHallLevel = townHall.level;
+
+    // Calcular límite de edificios según nivel del ayuntamiento
+    let maxBuildings;
+    switch (townHallLevel) {
+      case 1: maxBuildings = 5; break;
+      case 2: maxBuildings = 10; break;
+      case 3: maxBuildings = 15; break;
+      case 4: maxBuildings = 25; break;
+      default: maxBuildings = 5;
+    }
+
+    // Contar edificios actuales (excluyendo ayuntamiento)
+    const { data: buildings, error: buildingsError } = await supabase
+      .from('user_buildings')
+      .select('id, building_types(name)')
+      .eq('user_id', userId);
+
+    if (buildingsError) {
+      throw buildingsError;
+    }
+
+    const currentBuildings = buildings.filter(b => b.building_types?.name !== 'Ayuntamiento').length;
+    const remainingSlots = Math.max(0, maxBuildings - currentBuildings);
+
+    res.json({
+      success: true,
+      data: {
+        townHallLevel,
+        maxBuildings,
+        currentBuildings,
+        remainingSlots,
+        isAtLimit: remainingSlots === 0
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in getBuildingLimits:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+/**
+ * Calcular costo de mejora de un edificio
+ */
+const getUpgradeCost = async (req, res) => {
+  try {
+    const { buildingId } = req.params;
+    const userId = req.user.id;
+
+    // Obtener edificio y su tipo
+    const { data: building, error: buildingError } = await supabase
+      .from('user_buildings')
+      .select('*, building_types(*)')
+      .eq('id', buildingId)
+      .eq('user_id', userId)
+      .single();
+
+    if (buildingError || !building) {
+      return res.status(404).json({
+        success: false,
+        message: 'Edificio no encontrado'
+      });
+    }
+
+    const baseType = building.building_types;
+    const currentLevel = building.level;
+    const multiplier = Math.pow(1.5, currentLevel - 1);
+
+    const cost = {
+      wood: Math.floor(baseType.base_cost_wood * multiplier),
+      stone: Math.floor(baseType.base_cost_stone * multiplier),
+      food: Math.floor(baseType.base_cost_food * multiplier),
+      iron: Math.floor(baseType.base_cost_iron * multiplier)
+    };
+
+    res.json({
+      success: true,
+      data: {
+        buildingId,
+        buildingName: baseType.name,
+        currentLevel,
+        nextLevel: currentLevel + 1,
+        cost
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in getUpgradeCost:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+/**
+ * Validar si un edificio puede ser mejorado
+ */
+const canUpgradeBuildingEndpoint = async (req, res) => {
+  try {
+    const { buildingId } = req.params;
+    const userId = req.user.id;
+
+    // Obtener edificio
+    const { data: building, error: buildingError } = await supabase
+      .from('user_buildings')
+      .select('*, building_types(*)')
+      .eq('id', buildingId)
+      .eq('user_id', userId)
+      .single();
+
+    if (buildingError || !building) {
+      return res.status(404).json({
+        success: false,
+        message: 'Edificio no encontrado'
+      });
+    }
+
+    // Obtener ayuntamiento
+    const { data: townHall } = await supabase
+      .from('user_buildings')
+      .select('level, building_types(name)')
+      .eq('user_id', userId)
+      .eq('building_types.name', 'Ayuntamiento')
+      .single();
+
+    const townHallLevel = townHall?.level || 1;
+    const isAyuntamiento = building.building_types.name === 'Ayuntamiento';
+
+    // Validar si puede mejorar
+    const canUpgrade = isAyuntamiento 
+      ? building.level < 4  // Ayuntamiento solo necesita estar bajo nivel 4
+      : building.level < townHallLevel && building.level < 4; // Otros edificios necesitan nivel de ayuntamiento
+
+    let reason = '';
+    if (!canUpgrade) {
+      if (building.level >= 4) {
+        reason = 'El edificio ya alcanzó el nivel máximo (4)';
+      } else if (!isAyuntamiento && building.level >= townHallLevel) {
+        reason = `Necesitas mejorar tu ayuntamiento (nivel ${townHallLevel}) primero`;
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        canUpgrade,
+        reason,
+        buildingLevel: building.level,
+        townHallLevel,
+        maxLevel: 4
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in canUpgradeBuildingEndpoint:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+/**
+ * Calcular tasa de producción de un edificio
+ */
+const getProductionRate = async (req, res) => {
+  try {
+    const { buildingId } = req.params;
+    const userId = req.user.id;
+
+    // Obtener edificio
+    const { data: building, error: buildingError } = await supabase
+      .from('user_buildings')
+      .select('*, building_types(*)')
+      .eq('id', buildingId)
+      .eq('user_id', userId)
+      .single();
+
+    if (buildingError || !building) {
+      return res.status(404).json({
+        success: false,
+        message: 'Edificio no encontrado'
+      });
+    }
+
+    if (building.building_types.type !== 'resource_generator') {
+      return res.json({
+        success: true,
+        data: {
+          isGenerator: false,
+          productionRate: 0
+        }
+      });
+    }
+
+    const baseRate = building.building_types.base_production_rate || 0;
+    const multiplier = building.production_multiplier ?? building.level_config?.production_multiplier ?? 1;
+    const extra = building.extra_production ?? building.level_config?.extra_production ?? 0;
+    const productionRate = baseRate * multiplier + extra;
+
+    res.json({
+      success: true,
+      data: {
+        isGenerator: true,
+        productionRate,
+        baseRate,
+        multiplier,
+        extra
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in getProductionRate:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
 module.exports = {
   // 👤 Perfil de Usuario - Obtener información completa del usuario y su aldea
   getUserProfile,
@@ -2184,5 +2435,11 @@ module.exports = {
   getTroopTypes,
   
   // ⚔️ Tropas del Usuario - Listar tropas que posee el usuario
-  getUserTroops
+  getUserTroops,
+  
+  // 📊 NUEVOS ENDPOINTS - LÓGICA DE VALIDACIÓN
+  getBuildingLimits,
+  getUpgradeCost,
+  canUpgradeBuildingEndpoint,
+  getProductionRate
 };

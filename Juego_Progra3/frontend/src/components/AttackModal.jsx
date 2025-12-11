@@ -155,18 +155,31 @@ function AttackModal({
     }));
   };
 
-  const calculateAttackPower = () => {
-    let totalPower = 0;
-    
-    Object.entries(selectedTroops).forEach(([troopTypeId, quantity]) => {
-      const troopType = troopTypes.find(type => type.id === parseInt(troopTypeId));
-      if (troopType && quantity > 0) {
-        totalPower += troopType.power * quantity;
+  // Estado para poder de ataque (calculado por backend)
+  const [attackPower, setAttackPower] = useState(0);
+
+  // Calcular poder de ataque usando backend
+  const calculateAttackPower = async () => {
+    try {
+      const response = await troopAPI.calculateAttackPower(selectedTroops);
+      if (response.success) {
+        setAttackPower(response.data.totalPower);
+        return response.data.totalPower;
       }
-    });
-    
-    return totalPower;
+    } catch (error) {
+      console.error('Error calculando poder de ataque:', error);
+    }
+    return 0;
   };
+
+  // Recalcular cuando cambien tropas seleccionadas
+  useEffect(() => {
+    if (Object.keys(selectedTroops).length > 0) {
+      calculateAttackPower();
+    } else {
+      setAttackPower(0);
+    }
+  }, [selectedTroops]);
 
   const getTotalSelectedTroops = () => {
     return Object.values(selectedTroops).reduce((total, quantity) => total + quantity, 0);
@@ -208,7 +221,6 @@ function AttackModal({
 
   if (!isOpen) return null;
 
-  const attackPower = calculateAttackPower();
   const defensePower = targetDefensePower ?? 0; // Usar ?? en lugar de ||
   const isDefenseCalculated = targetDefensePower !== null;
   const battlePrediction = attackPower > defensePower ? 'Victoria probable' : 

@@ -348,6 +348,58 @@ class VillageAPI {
       throw error;
     }
   }
+
+  // ========================================
+  // NUEVOS MÉTODOS - LÓGICA DEL BACKEND
+  // ========================================
+
+  // Obtener límites de edificios según nivel del ayuntamiento
+  async getBuildingLimits() {
+    try {
+      return await this.makeRequest(`${this.baseURL}/api/village/building-limits`, {
+        method: 'GET'
+      });
+    } catch (error) {
+      console.error('Error getting building limits:', error);
+      throw error;
+    }
+  }
+
+  // Obtener costo de mejora de un edificio
+  async getUpgradeCost(buildingId) {
+    try {
+      return await this.makeRequest(`${this.baseURL}/api/village/buildings/${buildingId}/upgrade-cost`, {
+        method: 'GET'
+      });
+    } catch (error) {
+      console.error('Error getting upgrade cost:', error);
+      throw error;
+    }
+  }
+
+  // Validar si un edificio puede ser mejorado
+  async canUpgradeBuilding(buildingId) {
+    try {
+      return await this.makeRequest(`${this.baseURL}/api/village/buildings/${buildingId}/can-upgrade`, {
+        method: 'GET'
+      });
+    } catch (error) {
+      console.error('Error checking if can upgrade:', error);
+      throw error;
+    }
+  }
+
+  // Obtener tasa de producción de un edificio
+  async getProductionRate(buildingId) {
+    try {
+      return await this.makeRequest(`${this.baseURL}/api/village/buildings/${buildingId}/production-rate`, {
+        method: 'GET'
+      });
+    } catch (error) {
+      console.error('Error getting production rate:', error);
+      throw error;
+    }
+  }
 }
 
 // Exportar instancia única

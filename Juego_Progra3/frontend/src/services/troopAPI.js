@@ -259,6 +259,72 @@ class TroopAPI {
       throw error;
     }
   }
+
+  // ========================================
+  // NUEVOS MÉTODOS - LÓGICA DEL BACKEND
+  // ========================================
+
+  // Validar si puede costear tropas
+  async canAffordTroops(troopTypeId, quantity) {
+    try {
+      const response = await fetch(`${this.baseURL}/can-afford`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ troopTypeId, quantity })
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Error checking if can afford troops:', error);
+      throw error;
+    }
+  }
+
+  // Calcular poder de ataque total
+  async calculateAttackPower(selectedTroops) {
+    try {
+      const response = await fetch(`${this.baseURL}/calculate-attack-power`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ selectedTroops })
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Error calculating attack power:', error);
+      throw error;
+    }
+  }
+
+  // Obtener tropas disponibles para ataque
+  async getAvailableForAttack() {
+    try {
+      const response = await fetch(`${this.baseURL}/available-for-attack`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Error getting available troops for attack:', error);
+      throw error;
+    }
+  }
+
+  // Obtener categorías de tropas
+  async getTroopCategories() {
+    try {
+      const response = await fetch(`${this.baseURL}/categories`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Error getting troop categories:', error);
+      throw error;
+    }
+  }
 }
 
 // Exportar instancia única

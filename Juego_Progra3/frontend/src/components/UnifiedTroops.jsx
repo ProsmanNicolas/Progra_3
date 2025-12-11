@@ -245,12 +245,7 @@ const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = 
       }
 
       // Verificar si puede costear las tropas
-      if (!canAfford(troopType, qty)) {
-        console.error('❌ No puedes costear las tropas');
-        alert('No tienes suficientes recursos');
-        return;
-      }
-
+      // NOTA: El backend validará esto, pero dejamos validación simple de UI
       console.log('💰 Enviando petición de entrenamiento...');
       const token = localStorage.getItem('auth-token');
       const response = await fetch(`${API_BASE_URL}/api/village/training/start`, {
@@ -329,18 +324,25 @@ const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = 
     return building ? building.level : 0;
   };
 
-  const canAfford = (troop, qty) => {
-    const totalCost = {
-      wood: troop.wood_cost * qty,
-      stone: troop.stone_cost * qty,
-      food: troop.food_cost * qty,
-      iron: troop.iron_cost * qty
-    };
-
-    return userResources.wood >= totalCost.wood &&
-           userResources.stone >= totalCost.stone &&
-           userResources.food >= totalCost.food &&
-           userResources.iron >= totalCost.iron;
+// Validar si puede costear tropas (llamando al backend)
+  const canAfford = async (troop, qty) => {
+    try {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      const token = localStorage.getItem('auth-token');
+      const response = await fetch(`${API_BASE_URL}/api/troops/can-afford`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ troopTypeId: troop.id, quantity: qty })
+      });
+      const result = await response.json();
+      return result.success && result.data.canAfford;
+    } catch (error) {
+      console.error('Error validando recursos:', error);
+      return false;
+    }
   };
 
   const canTrain = (troop) => {
@@ -553,11 +555,16 @@ const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = 
             const buildingLevel = getBuildingLevelForTroop(troop.name);
             const buildingName = getBuildingNameForTroop(troop.name);
             const canTrainTroop = canTrain(troop);
-            const canAffordTroop = canAfford(troop, 1);
+            // Validaci\u00f3n simple de UI (backend validar\u00e1 realmente)
+            const hasEnoughWood = userResources?.wood >= troop.wood_cost;
+            const hasEnoughStone = userResources?.stone >= troop.stone_cost;
+            const hasEnoughFood = userResources?.food >= troop.food_cost;
+            const hasEnoughIron = userResources?.iron >= troop.iron_cost;
+            const canAffordBasic = hasEnoughWood && hasEnoughStone && hasEnoughFood && hasEnoughIron;
 
             return (
               <div key={troop.id} className={`card-glass border-2 rounded-xl p-5 transition-all ${
-                canTrainTroop && canAffordTroop 
+                canTrainTroop && canAffordBasic 
                   ? 'border-green-500 hover:border-green-400 hover:scale-105' 
                   : 'border-gray-600 opacity-75'
               }`}>

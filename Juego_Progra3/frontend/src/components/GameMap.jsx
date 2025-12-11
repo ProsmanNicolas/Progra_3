@@ -36,30 +36,29 @@ export default function GameMap({ userId, userResources, userBuildings, onResour
   const [moveMode, setMoveMode] = useState(false);
   const [buildingToMove, setBuildingToMove] = useState(null);
 
-  // Función para calcular límite de edificios según nivel del Ayuntamiento
-  const getBuildingLimit = () => {
-    const townHall = userBuildings?.find(b => b.building_types?.name === 'Ayuntamiento');
-    const townHallLevel = townHall ? townHall.level : 1;
-    
-    let maxBuildings;
-    switch (townHallLevel) {
-      case 1: maxBuildings = 5; break;
-      case 2: maxBuildings = 10; break;
-      case 3: maxBuildings = 15; break;
-      case 4: maxBuildings = 25; break;
-      default: maxBuildings = 5;
+  // Estado para límites de edificios (viene del backend)
+  const [buildingLimits, setBuildingLimits] = useState(null);
+
+  // Cargar límites de edificios desde el backend
+  const loadBuildingLimits = async () => {
+    try {
+      const response = await villageAPI.getBuildingLimits();
+      if (response.success) {
+        setBuildingLimits(response.data);
+      }
+    } catch (error) {
+      console.error('Error cargando límites de edificios:', error);
     }
-    
-    // Excluir el Ayuntamiento del conteo (es un edificio especial que no cuenta para el límite)
-    const currentBuildings = userBuildings?.filter(b => b.building_types?.name !== 'Ayuntamiento').length || 0;
-    const remainingSlots = Math.max(0, maxBuildings - currentBuildings);
-    
-    return {
-      current: currentBuildings,
-      max: maxBuildings,
-      remaining: remainingSlots,
-      townHallLevel,
-      isAtLimit: remainingSlots === 0
+  };
+
+  // Función para obtener límites (ahora solo retorna el estado)
+  const getBuildingLimit = () => {
+    return buildingLimits || {
+      current: 0,
+      max: 5,
+      remaining: 5,
+      townHallLevel: 1,
+      isAtLimit: false
     };
   };
 
@@ -68,6 +67,7 @@ export default function GameMap({ userId, userResources, userBuildings, onResour
     if (userId && !buildingTypesLoaded) {
       console.log('🚀 Inicializando GameMap para usuario:', userId);
       initializeComponent();
+      loadBuildingLimits();
     }
     
     // Cleanup al desmontar el componente
@@ -75,6 +75,13 @@ export default function GameMap({ userId, userResources, userBuildings, onResour
       setIsMounted(false);
     };
   }, [userId]); // Solo depender de userId
+
+  useEffect(() => {
+    // Recargar límites cuando cambien los edificios
+    if (userId && userBuildings) {
+      loadBuildingLimits();
+    }
+  }, [userBuildings]);
 
   useEffect(() => {
     if (isMounted) {

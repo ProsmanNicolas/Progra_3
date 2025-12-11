@@ -1060,6 +1060,261 @@ const executeBattle = async (req, res) => {
   }
 };
 
+// ========================================
+// NUEVOS ENDPOINTS - LÓGICA DE VALIDACIÓN
+// ========================================
+
+/**
+ * Validar si el usuario puede costear el entrenamiento de tropas
+ */
+const canAffordTroops = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { troopTypeId, quantity } = req.body;
+
+    if (!troopTypeId || !quantity) {
+      return res.status(400).json({
+        success: false,
+        message: 'troopTypeId y quantity son requeridos'
+      });
+    }
+
+    // Obtener tipo de tropa
+    const { data: troopType, error: troopError } = await supabase
+      .from('troop_types')
+      .select('*')
+      .eq('id', troopTypeId)
+      .single();
+
+    if (troopError || !troopType) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tipo de tropa no encontrado'
+      });
+    }
+
+    // Obtener recursos del usuario
+    const { data: userResources, error: resourcesError } = await supabase
+      .from('user_resources')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (resourcesError) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recursos del usuario no encontrados'
+      });
+    }
+
+    // Calcular costo total
+    const totalCost = {
+      wood: troopType.wood_cost * quantity,
+      stone: troopType.stone_cost * quantity,
+      food: troopType.food_cost * quantity,
+      iron: troopType.iron_cost * quantity
+    };
+
+    // Validar si puede costear
+    const canAfford = 
+      userResources.wood >= totalCost.wood &&
+      userResources.stone >= totalCost.stone &&
+      userResources.food >= totalCost.food &&
+      userResources.iron >= totalCost.iron;
+
+    res.json({
+      success: true,
+      data: {
+        canAfford,
+        totalCost,
+        currentResources: {
+          wood: userResources.wood,
+          stone: userResources.stone,
+          food: userResources.food,
+          iron: userResources.iron
+        },
+        missing: canAfford ? null : {
+          wood: Math.max(0, totalCost.wood - userResources.wood),
+          stone: Math.max(0, totalCost.stone - userResources.stone),
+          food: Math.max(0, totalCost.food - userResources.food),
+          iron: Math.max(0, totalCost.iron - userResources.iron)
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in canAffordTroops:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+/**
+ * Calcular poder de ataque total de tropas seleccionadas
+ */
+const calculateAttackPower = async (req, res) => {
+  try {
+    const { selectedTroops } = req.body; // { troopTypeId: quantity }
+
+    if (!selectedTroops || typeof selectedTroops !== 'object') {
+      return res.status(400).json({
+        success: false,
+        message: 'selectedTroops es requerido (objeto con troopTypeId: quantity)'
+      });
+    }
+
+    let totalPower = 0;
+    const troopDetails = [];
+
+    // Obtener todos los tipos de tropas necesarios
+    const troopTypeIds = Object.keys(selectedTroops).map(id => parseInt(id));
+    
+    const { data: troopTypes, error } = await supabase
+      .from('troop_types')
+      .select('*')
+      .in('id', troopTypeIds);
+
+    if (error) {
+      throw error;
+    }
+
+    // Calcular poder total
+    for (const [troopTypeId, quantity] of Object.entries(selectedTroops)) {
+      const troopType = troopTypes.find(t => t.id === parseInt(troopTypeId));
+      if (troopType && quantity > 0) {
+        const power = troopType.power * quantity;
+        totalPower += power;
+        troopDetails.push({
+          troopTypeId: parseInt(troopTypeId),
+          name: troopType.name,
+          quantity,
+          powerPerUnit: troopType.power,
+          totalPower: power
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        totalPower,
+        troopDetails,
+        totalTroops: Object.values(selectedTroops).reduce((sum, qty) => sum + qty, 0)
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in calculateAttackPower:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+/**
+ * Obtener tropas disponibles para ataque (total - asignadas a defensa)
+ */
+const getAvailableForAttack = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Obtener todas las tropas del usuario
+    const { data: userTroops, error: troopsError } = await supabase
+      .from('user_troops')
+      .select('*, troop_types(*)')
+      .eq('user_id', userId);
+
+    if (troopsError) {
+      throw troopsError;
+    }
+
+    // Obtener asignaciones de defensa
+    const { data: defenseAssignments, error: defenseError } = await supabase
+      .from('defense_assignments')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (defenseError && defenseError.code !== 'PGRST116') {
+      throw defenseError;
+    }
+
+    // Calcular tropas disponibles para ataque
+    const availableTroops = userTroops.map(troop => {
+      const assignedToDefense = defenseAssignments?.find(
+        d => d.troop_type_id === troop.troop_type_id
+      )?.quantity || 0;
+
+      const availableForAttack = troop.quantity - assignedToDefense;
+
+      return {
+        troopTypeId: troop.troop_type_id,
+        troopName: troop.troop_types?.name,
+        totalQuantity: troop.quantity,
+        assignedToDefense,
+        availableForAttack: Math.max(0, availableForAttack),
+        power: troop.troop_types?.power || 0
+      };
+    });
+
+    res.json({
+      success: true,
+      data: availableTroops
+    });
+
+  } catch (error) {
+    console.error('Error in getAvailableForAttack:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+/**
+ * Obtener categorías de tropas (barracas vs magia)
+ */
+const getTroopCategories = async (req, res) => {
+  try {
+    const { data: troopTypes, error } = await supabase
+      .from('troop_types')
+      .select('id, name, category');
+
+    if (error) {
+      throw error;
+    }
+
+    // Separar por categoría
+    const barracks = troopTypes.filter(t => t.category === 'barracks');
+    const magic = troopTypes.filter(t => t.category === 'magic');
+
+    // También crear mapeo de nombre a categoría
+    const categoryMap = {};
+    troopTypes.forEach(t => {
+      categoryMap[t.name] = t.category;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        barracks: barracks.map(t => t.name),
+        magic: magic.map(t => t.name),
+        categoryMap,
+        allTypes: troopTypes
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in getTroopCategories:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
 module.exports = {
   // 🎖️ Tipos de Tropas - Obtener catálogo de todos los tipos de tropas disponibles (soldado, arquero, etc.)
   getTroopTypes,
@@ -1089,5 +1344,11 @@ module.exports = {
   getTargetDefensePower,
   
   // ⚡ Ejecutar Batalla - Procesar combate entre atacante y defensor, calcular ganador
-  executeBattle
+  executeBattle,
+  
+  // 📊 NUEVOS ENDPOINTS - LÓGICA DE VALIDACIÓN
+  canAffordTroops,
+  calculateAttackPower,
+  getAvailableForAttack,
+  getTroopCategories
 };

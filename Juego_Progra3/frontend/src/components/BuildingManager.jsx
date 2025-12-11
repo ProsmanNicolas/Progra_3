@@ -9,94 +9,51 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
     return <div>Cargando edificios...</div>;
   }
 
-  // Obtener el nivel del ayuntamiento del usuario
-  const ayuntamiento = userBuildings.find(b => b.building_types?.type === 'special' || b.building_types?.name === 'Ayuntamiento');
-  const ayuntamientoLevel = ayuntamiento ? ayuntamiento.level : 1;
-  
-  // Debug: mostrar información del ayuntamiento (solo si cambió)
-  // console.log('🏛️ Ayuntamiento encontrado:', ayuntamiento);
-  // console.log('🏛️ Nivel del ayuntamiento:', ayuntamientoLevel);
-
-  // Solo permite mejorar si el nivel actual es menor que el ayuntamiento y menor a 4
-  const canUpgradeBuilding = (building) => {
-    if (!building?.building_types) {
-      console.log('❌ Edificio sin datos de tipo:', building);
-      return false;
-    }
-    
-    // Si es el ayuntamiento, puede mejorarse sin restricción de nivel de ayuntamiento
-    const isAyuntamiento = building.building_types.name === 'Ayuntamiento';
-    const canUpgrade = isAyuntamiento 
-      ? building.level < 4  // Ayuntamiento solo necesita estar bajo nivel 4
-      : building.level < ayuntamientoLevel && building.level < 4; // Otros edificios necesitan nivel de ayuntamiento
-      
-    // console.log(`🔧 Verificando mejora para ${building.building_types.name} nivel ${building.level}:`, {
-    //   nivelEdificio: building.level,
-    //   nivelAyuntamiento: ayuntamientoLevel,
-    //   esAyuntamiento: isAyuntamiento,
-    //   menorQueAyuntamiento: building.level < ayuntamientoLevel,
-    //   menorQue4: building.level < 4,
-    //   puedeUpgradear: canUpgrade
-    // });
-    return canUpgrade;
-  };
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [buildingCosts, setBuildingCosts] = useState({}); // Cachear costos del backend
 
-  // Ya no necesitamos cargar edificios aquí, vienen del componente padre
-
-  const calculateUpgradeCost = (building) => {
-    if (!building?.building_types) {
-      console.log('❌ No se puede calcular costo, edificio sin datos de tipo:', building);
-      return { wood: 0, stone: 0, food: 0, iron: 0 };
+  // Cargar costo de mejora desde backend
+  const loadUpgradeCost = async (buildingId) => {
+    try {
+      const response = await villageAPI.getUpgradeCost(buildingId);
+      if (response.success) {
+        setBuildingCosts(prev => ({
+          ...prev,
+          [buildingId]: response.data.cost
+        }));
+        return response.data.cost;
+      }
+    } catch (error) {
+      console.error('Error cargando costo de mejora:', error);
     }
-    
-    const baseType = building.building_types;
-    const multiplier = Math.pow(1.5, building.level - 1);
-    
-    const cost = {
-      wood: Math.floor(baseType.base_cost_wood * multiplier),
-      stone: Math.floor(baseType.base_cost_stone * multiplier),
-      food: Math.floor(baseType.base_cost_food * multiplier),
-      iron: Math.floor(baseType.base_cost_iron * multiplier)
-    };
-    return cost;
+    return { wood: 0, stone: 0, food: 0, iron: 0 };
   };
 
-  const canAffordUpgrade = (building) => {
-    if (!userResources) {
-      console.log('❌ No hay recursos de usuario disponibles');
-      return false;
+  // Cargar costos para todos los edificios al montar
+  useEffect(() => {
+    if (userBuildings) {
+      userBuildings.forEach(building => {
+        loadUpgradeCost(building.id);
+      });
     }
-    
-    const cost = calculateUpgradeCost(building);
-    const canAfford = (
-      userResources.wood >= cost.wood &&
-      userResources.stone >= cost.stone &&
-      userResources.food >= cost.food &&
-      userResources.iron >= cost.iron
-    );
-    
-    return canAfford;
-  };
+  }, [userBuildings]);
 
   const upgradeBuilding = async (building) => {
-    console.log('🎯 upgradeBuilding called');
-    console.log('🏗️ Building object:', building);
-    console.log('🏗️ Building keys:', Object.keys(building || {}));
-    console.log('🏗️ Building.building_types:', building?.building_types);
-    console.log('🏗️ Building.level:', building?.level);
+    console.log('🎯 upgradeBuilding called for:', building.id);
     
-    if (!canAffordUpgrade(building)) {
-      console.log('❌ No puede costear la mejora');
-      setMessage('No tienes suficientes recursos para mejorar este edificio');
+    // Validar con backend si puede mejorar
+    try {
+      const canUpgradeResponse = await villageAPI.canUpgradeBuilding(building.id);
+      if (!canUpgradeResponse.success || !canUpgradeResponse.data.canUpgrade) {
+        setMessage(canUpgradeResponse.data.reason || 'No puedes mejorar este edificio');
+        setTimeout(() => setMessage(''), 4000);
+        return;
+      }
+    } catch (error) {
+      console.error('Error validando mejora:', error);
+      setMessage('Error al validar mejora');
       setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-    if (!canUpgradeBuilding(building)) {
-      console.log('❌ canUpgradeBuilding retornó false');
-      setMessage('No puedes mejorar este edificio porque el nivel de tu ayuntamiento es insuficiente o ya alcanzaste el nivel máximo (4)');
-      setTimeout(() => setMessage(''), 4000);
       return;
     }
 
@@ -170,14 +127,6 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
     }
   };
 
-  const calculateProduction = (building) => {
-    if (building.building_types?.type !== 'resource_generator') return 0;
-    const baseRate = building.building_types?.base_production_rate || 0;
-    const multiplier = building.production_multiplier ?? building.level_config?.production_multiplier ?? 1;
-    const extra = building.extra_production ?? building.level_config?.extra_production ?? 0;
-    return baseRate * multiplier + extra;
-  };
-
   const formatCost = (cost) => {
     const costs = [];
     if (cost.wood > 0) costs.push(`🪵${cost.wood}`);
@@ -188,9 +137,6 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
   };
 
   const groupedBuildings = userBuildings.reduce((acc, building) => {
-    console.log('🏢 Building en groupedBuildings:', {
-      building: building,
-      keys: Object.keys(building || {}),
       building_types: building.building_types,
       building_type_id: building.building_type_id,
       name: building.name,
@@ -237,10 +183,16 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
 
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {buildings.map((building, index) => {
-                  const upgradeCost = calculateUpgradeCost(building);
-                  const canAfford = canAffordUpgrade(building);
-                  const canUpgrade = canUpgradeBuilding(building);
-                  const production = calculateProduction(building);
+                  // Obtener costo desde cache del backend
+                  const upgradeCost = buildingCosts[building.id] || { wood: 0, stone: 0, food: 0, iron: 0 };
+                  
+                  // Validar si puede costear (solo UI, backend valida en upgradeBuilding)
+                  const canAfford = userResources && (
+                    userResources.wood >= upgradeCost.wood &&
+                    userResources.stone >= upgradeCost.stone &&
+                    userResources.food >= upgradeCost.food &&
+                    userResources.iron >= upgradeCost.iron
+                  );
 
                   return (
                     <div key={building.id} className="bg-gray-800 bg-opacity-50 border-2 border-gray-700 hover:border-yellow-400 transition-all rounded-lg p-4">
@@ -257,9 +209,9 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
                           </p>
                         </div>
                         <div className="text-right">
-                          {production > 0 && (
+                          {building.building_types?.type === 'resource_generator' && (
                             <div className="text-sm font-semibold text-green-400 bg-green-900 bg-opacity-30 px-2 py-1 rounded">
-                              +{production}/min
+                              Generador
                             </div>
                           )}
                         </div>
@@ -327,18 +279,8 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
                   {buildings[0].building_types?.type === 'resource_generator' && (
                     <>
                       <div>
-                        <span className="font-semibold text-yellow-400">Producción total:</span> 
-                        <span className="text-green-400 ml-2 font-semibold">{
-                          buildings.reduce((total, building) => {
-                            if (building.building_types?.type === 'resource_generator') {
-                              const baseRate = building.building_types?.base_production_rate || 0;
-                              const multiplier = building.production_multiplier ?? building.level_config?.production_multiplier ?? 1;
-                              const extra = building.extra_production ?? building.level_config?.extra_production ?? 0;
-                              return total + (baseRate * multiplier + extra);
-                            }
-                            return total;
-                          }, 0)
-                        }/min</span>
+                        <span className="font-semibold text-yellow-400">Edificios de este tipo:</span> 
+                        <span className="text-green-400 ml-2 font-semibold">{buildings.length}</span>
                       </div>
                       <div>
                         <span className="font-semibold text-yellow-400">Recurso:</span> 
