@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+
 const BattleHistory = () => {
   const [battles, setBattles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +18,7 @@ const BattleHistory = () => {
       setError(null);
 
       const token = localStorage.getItem('auth-token');
-      const response = await fetch(`/api/map/battles?type=${filter}&limit=50`, {
+      const response = await fetch(`${API_BASE_URL}/api/map/battles?type=${filter}&limit=50`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

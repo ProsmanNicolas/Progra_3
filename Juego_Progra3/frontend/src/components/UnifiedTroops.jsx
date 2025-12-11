@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getTroopIcon } from '../utils/troopIcons';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+
 const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = [] }) => {
   const [userTroops, setUserTroops] = useState(null);
   const [troopTypes, setTroopTypes] = useState([]);
@@ -53,7 +55,7 @@ const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = 
       const token = localStorage.getItem('auth-token');
       console.log('🔍 Debug - Token presente:', !!token);
       
-      const response = await fetch('/api/village/troop-types', {
+      const response = await fetch(`${API_BASE_URL}/api/village/troop-types`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -91,7 +93,7 @@ const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = 
       const token = localStorage.getItem('auth-token');
       console.log('🔍 Debug - Token presente:', !!token);
       
-      const response = await fetch('/api/village/user-troops', {
+      const response = await fetch(`${API_BASE_URL}/api/village/user-troops`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -134,7 +136,7 @@ const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = 
     try {
       console.log('🔄 loadTrainingQueue iniciado...');
       const token = localStorage.getItem('auth-token');
-      const response = await fetch('/api/village/training-queue', {
+      const response = await fetch(`${API_BASE_URL}/api/village/training-queue`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -198,7 +200,7 @@ const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = 
   const completeTroopTraining = async (queueId) => {
     try {
       const token = localStorage.getItem('auth-token');
-      const response = await fetch('/api/village/training/complete', {
+      const response = await fetch(`${API_BASE_URL}/api/village/training/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -251,7 +253,7 @@ const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = 
 
       console.log('💰 Enviando petición de entrenamiento...');
       const token = localStorage.getItem('auth-token');
-      const response = await fetch('/api/village/training/start', {
+      const response = await fetch(`${API_BASE_URL}/api/village/training/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -274,7 +276,7 @@ const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = 
         // ✅ El backend ya descontó los recursos automáticamente
         // Ahora solo necesitamos obtener los recursos actualizados del backend
         const token = localStorage.getItem('auth-token');
-        const resourcesResponse = await fetch('/api/resources/', {
+        const resourcesResponse = await fetch(`${API_BASE_URL}/api/resources/`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

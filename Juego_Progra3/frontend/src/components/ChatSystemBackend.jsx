@@ -166,6 +166,26 @@ const ChatSystem = ({ user }) => {
       }
       
       loadOnlineUsers();
+
+      // Auto-actualizar mensajes cada 3 segundos
+      const messageInterval = setInterval(() => {
+        if (activeTab === 'global') {
+          loadGlobalMessages();
+        } else if (activeTab === 'private' && selectedConversation) {
+          loadPrivateMessages(selectedConversation.otherUserId);
+        }
+      }, 3000);
+
+      // Auto-actualizar usuarios en línea cada 10 segundos
+      const onlineUsersInterval = setInterval(() => {
+        loadOnlineUsers();
+      }, 10000);
+
+      // Limpiar intervalos al desmontar
+      return () => {
+        clearInterval(messageInterval);
+        clearInterval(onlineUsersInterval);
+      };
     }
 
     // Actualizar presencia al cerrar
