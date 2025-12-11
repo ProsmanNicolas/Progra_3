@@ -231,32 +231,32 @@ const ChatSystem = ({ user }) => {
         {!isOpen ? (
           <button
             onClick={() => setIsOpen(true)}
-            className="w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center text-2xl"
+            className="w-14 h-14 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg flex items-center justify-center text-2xl"
             title="Abrir chat"
           >
             💬
           </button>
         ) : (
-          <div className="bg-white rounded-lg shadow-2xl border border-gray-300 h-full flex flex-col">
+          <div className="bg-gray-800 rounded-lg shadow-2xl border border-purple-500 h-full flex flex-col">
             {/* Header del chat */}
-            <div className="bg-blue-500 text-white p-3 rounded-t-lg flex justify-between items-center">
+            <div className="bg-purple-600 text-white p-3 rounded-t-lg flex justify-between items-center border-b-2 border-purple-400">
               <div className="flex space-x-2">
                 <button
                   onClick={() => setActiveTab('global')}
-                  className={`px-3 py-1 rounded text-sm ${
+                  className={`px-3 py-1 rounded text-sm font-semibold transition-colors ${
                     activeTab === 'global' 
-                      ? 'bg-white text-blue-500' 
-                      : 'bg-blue-400 hover:bg-blue-300'
+                      ? 'bg-white text-purple-600' 
+                      : 'bg-purple-500 hover:bg-purple-400 text-white'
                   }`}
                 >
                   Global
                 </button>
                 <button
                   onClick={() => setActiveTab('private')}
-                  className={`px-3 py-1 rounded text-sm ${
+                  className={`px-3 py-1 rounded text-sm font-semibold transition-colors ${
                     activeTab === 'private' 
-                      ? 'bg-white text-blue-500' 
-                      : 'bg-blue-400 hover:bg-blue-300'
+                      ? 'bg-white text-purple-600' 
+                      : 'bg-purple-500 hover:bg-purple-400 text-white'
                   }`}
                 >
                   Privado
