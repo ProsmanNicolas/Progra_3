@@ -903,6 +903,51 @@ const ensureUserVillage = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // ✅ PASO 1: Verificar/crear entrada en tabla villages
+    console.log('🏘️ Verificando entrada en tabla villages para usuario:', userId);
+    
+    const { data: existingVillage, error: villageCheckError } = await supabase
+      .from('villages')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (!existingVillage && villageCheckError?.code === 'PGRST116') {
+      // Usuario no tiene entrada en villages, crearla
+      console.log('🏘️ Creando entrada en tabla villages');
+      
+      // Obtener el username del usuario
+      const { data: userData } = await supabase
+        .from('users')
+        .select('username')
+        .eq('id', userId)
+        .single();
+      
+      const username = userData?.username || 'Usuario';
+      
+      const { error: villageCreateError } = await supabase
+        .from('villages')
+        .insert({
+          user_id: userId,
+          village_name: `Aldea de ${username}`,
+          village_icon: '🏘️',
+          village_motto: '¡Mi nueva aldea!'
+        });
+
+      if (villageCreateError) {
+        console.error('❌ Error creando entrada en villages:', villageCreateError);
+        return res.status(500).json({
+          success: false,
+          message: 'Error al crear aldea'
+        });
+      } else {
+        console.log('✅ Entrada en tabla villages creada exitosamente');
+      }
+    } else if (existingVillage) {
+      console.log('✅ Usuario ya tiene entrada en tabla villages');
+    }
+
+    // ✅ PASO 2: Verificar/crear Ayuntamiento
     // Primero obtener el ID del tipo de edificio Ayuntamiento
     const { data: townHallType, error: townHallTypeError } = await supabase
       .from('building_types')
