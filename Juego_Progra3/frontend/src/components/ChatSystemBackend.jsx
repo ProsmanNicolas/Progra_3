@@ -286,7 +286,7 @@ const ChatSystem = ({ user }) => {
 
               {/* Header de conversación privada */}
               {activeTab === 'private' && selectedConversation && (
-                <div className="px-3 py-2 bg-gray-100 border-b border-gray-300 flex items-center justify-between">
+                <div className="px-3 py-2 bg-gray-700 border-b border-purple-500 flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => {
@@ -294,11 +294,11 @@ const ChatSystem = ({ user }) => {
                         setMessages([]);
                         loadPrivateConversations();
                       }}
-                      className="text-gray-600 hover:text-gray-800"
+                      className="text-purple-400 hover:text-purple-300"
                     >
                       ←
                     </button>
-                    <span className="font-semibold text-sm">
+                    <span className="font-semibold text-sm text-white">
                       {selectedConversation.targetUserName || `Usuario ${selectedConversation.otherUserId?.slice(-4)}`}
                     </span>
                   </div>
@@ -308,7 +308,7 @@ const ChatSystem = ({ user }) => {
                         ? 'bg-green-400'
                         : 'bg-gray-400'
                     }`}></div>
-                    <span className="text-xs text-gray-600">
+                    <span className="text-xs text-gray-300">
                       {onlineUsers.some(u => u.user_id === selectedConversation.otherUserId) ? 'online' : 'offline'}
                     </span>
                   </div>
@@ -317,9 +317,9 @@ const ChatSystem = ({ user }) => {
 
               {/* Área de mensajes */}
               {(activeTab === 'global' || (activeTab === 'private' && selectedConversation)) && (
-                <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50">
+                <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-900">
                   {messages.length === 0 ? (
-                    <div className="text-center text-gray-500 py-8">
+                    <div className="text-center text-gray-400 py-8">
                       <p className="text-sm">
                         {activeTab === 'global' 
                           ? '¡Sé el primero en escribir!' 
@@ -333,13 +333,13 @@ const ChatSystem = ({ user }) => {
                       }`}>
                         <div className={`inline-block p-2 rounded-lg max-w-xs ${
                           msg.user_id === user.id
-                            ? 'bg-blue-500 text-white'
+                            ? 'bg-purple-600 text-white'
                             : msg.is_system_message
-                            ? 'bg-yellow-100 text-yellow-800 border border-yellow-300'
-                            : 'bg-white border border-gray-300'
+                            ? 'bg-yellow-900 text-yellow-200 border border-yellow-600'
+                            : 'bg-gray-700 text-white border border-gray-600'
                         }`}>
                           {!msg.is_system_message && msg.user_id !== user.id && activeTab === 'global' && (
-                            <div className="font-semibold text-xs text-gray-600 mb-1">
+                            <div className="font-semibold text-xs text-purple-300 mb-1">
                               {getUserName(msg.user)}
                             </div>
                           )}
@@ -357,7 +357,7 @@ const ChatSystem = ({ user }) => {
 
               {/* Formulario de envío */}
               {(activeTab === 'global' || (activeTab === 'private' && selectedConversation)) && (
-                <div className="p-3 border-t border-gray-300">
+                <div className="p-3 border-t border-purple-500 bg-gray-800">
                   <form onSubmit={sendMessage} className="flex space-x-2">
                     <input
                       type="text"
@@ -368,14 +368,14 @@ const ChatSystem = ({ user }) => {
                           ? 'Mensaje global...' 
                           : `Mensaje a ${selectedConversation?.targetUserName || 'usuario'}...`
                       }
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                      className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg text-sm focus:outline-none focus:border-purple-500"
                       maxLength="500"
                       disabled={loading}
                     />
                     <button
                       type="submit"
                       disabled={loading || !newMessage.trim()}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
                     >
                       {loading ? '...' : '📤'}
                     </button>
