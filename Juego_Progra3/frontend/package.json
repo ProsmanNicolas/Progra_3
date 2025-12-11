@@ -5,7 +5,8 @@
   "proxy": "http://localhost:3001",
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build"
+    "build": "react-scripts build",
+    "vercel-build": "react-scripts build"
   },
   "dependencies": {
     "react": "^18.2.0",
