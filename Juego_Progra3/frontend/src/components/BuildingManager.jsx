@@ -184,14 +184,6 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
                 {buildings.map((building, index) => {
                   // Obtener costo desde cache del backend
                   const upgradeCost = buildingCosts[building.id] || { wood: 0, stone: 0, food: 0, iron: 0 };
-                  
-                  // Validar si puede costear (solo UI, backend valida en upgradeBuilding)
-                  const canAfford = userResources && (
-                    userResources.wood >= upgradeCost.wood &&
-                    userResources.stone >= upgradeCost.stone &&
-                    userResources.food >= upgradeCost.food &&
-                    userResources.iron >= upgradeCost.iron
-                  );
 
                   return (
                     <div key={building.id} className="bg-gray-800 bg-opacity-50 border-2 border-gray-700 hover:border-yellow-400 transition-all rounded-lg p-4">
@@ -223,9 +215,9 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
                           className={`flex-1 py-2 px-3 rounded font-semibold text-sm transition-colors ${
                             building.level >= 4
                               ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                              : canAfford && !loading
-                              ? 'bg-green-600 text-white hover:bg-green-700'
-                              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                              : loading
+                              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                              : 'bg-green-600 text-white hover:bg-green-700'
                           }`}
                         >
                           {building.level >= 4 ? '✅ Máximo' : `⬆️ Mejorar (${formatCost(upgradeCost)})`}

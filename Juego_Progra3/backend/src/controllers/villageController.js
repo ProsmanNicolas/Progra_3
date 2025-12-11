@@ -2180,10 +2180,10 @@ const getBuildingLimits = async (req, res) => {
     res.json({
       success: true,
       data: {
+        current: currentBuildings,
+        max: maxBuildings,
+        remaining: remainingSlots,
         townHallLevel,
-        maxBuildings,
-        currentBuildings,
-        remainingSlots,
         isAtLimit: remainingSlots === 0
       }
     });

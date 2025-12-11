@@ -948,7 +948,7 @@ export default function GameMap({ userId, userResources, userBuildings, onResour
                   title={`${building.name} - ${building.description}`}
                 >
                   <div className="text-center">
-                    <div className="text-3xl mb-1">{building.emoji}</div>
+                    <div className="text-3xl mb-1">{getBuildingIcon(building.name)}</div>
                     <div className="text-sm font-semibold text-white mb-1">{building.name}</div>
                     <div className="flex flex-wrap gap-1 justify-center text-xs">
                       {building.base_cost_wood > 0 && <span className="bg-green-900 bg-opacity-50 px-1.5 py-0.5 rounded">{building.base_cost_wood}🪵</span>}
@@ -966,7 +966,7 @@ export default function GameMap({ userId, userResources, userBuildings, onResour
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <p className="text-lg font-bold text-yellow-300 mb-1">
-                    {selectedBuildingType.emoji} {selectedBuildingType.name}
+                    {getBuildingIcon(selectedBuildingType.name)} {selectedBuildingType.name}
                   </p>
                   <p className="text-sm text-gray-300 mb-2">{selectedBuildingType.description}</p>
                   <div className="flex gap-2 flex-wrap">
@@ -998,7 +998,7 @@ export default function GameMap({ userId, userResources, userBuildings, onResour
       {!showConstructionPanel && selectedBuildingType && !moveMode && (
         <div className="mb-4 p-3 bg-yellow-500 bg-opacity-20 border-2 border-yellow-400 rounded-lg flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">{selectedBuildingType.emoji}</span>
+            <span className="text-3xl">{getBuildingIcon(selectedBuildingType.name)}</span>
             <div>
               <p className="font-bold text-yellow-300">{selectedBuildingType.name} seleccionado</p>
               <p className="text-sm text-gray-300">Haz clic en el mapa para construir</p>
