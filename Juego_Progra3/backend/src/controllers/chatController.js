@@ -398,13 +398,39 @@ const getOnlineUsers = async (req, res) => {
   try {
     console.log('👥 Obteniendo usuarios en línea...');
 
-    // Retornar array vacío por ahora (la tabla user_presence no existe)
-    // TODO: Implementar tabla user_presence en el futuro
+    // Obtener usuarios con status 'online' en los últimos 2 minutos
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+
+    const { data: onlineUsers, error } = await supabase
+      .from('user_presence')
+      .select(`
+        user_id,
+        status,
+        last_seen,
+        users (
+          id,
+          username,
+          email
+        )
+      `)
+      .eq('status', 'online')
+      .gte('last_seen', twoMinutesAgo);
+
+    if (error) {
+      console.error('❌ Error obteniendo usuarios online:', error);
+      return res.json({
+        success: true,
+        data: [],
+        count: 0
+      });
+    }
+
+    console.log(`✅ Usuarios online encontrados: ${onlineUsers?.length || 0}`);
+
     res.json({
       success: true,
-      data: [],
-      count: 0,
-      message: 'Funcionalidad de presencia pendiente de implementar'
+      data: onlineUsers || [],
+      count: onlineUsers?.length || 0
     });
 
   } catch (error) {
@@ -420,11 +446,36 @@ const getOnlineUsers = async (req, res) => {
 // Actualizar presencia del usuario
 const updatePresence = async (req, res) => {
   try {
-    // Retornar éxito sin hacer nada (la tabla user_presence no existe)
-    // TODO: Implementar tabla user_presence en el futuro
+    const userId = req.user.id;
+    const { status } = req.body; // 'online', 'offline', 'away'
+
+    console.log(`👤 Actualizando presencia de usuario ${userId} a ${status}`);
+
+    // Actualizar o insertar presencia
+    const { error } = await supabase
+      .from('user_presence')
+      .upsert({
+        user_id: userId,
+        status: status || 'online',
+        last_seen: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (error) {
+      console.error('❌ Error actualizando presencia:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error actualizando presencia',
+        error: error.message
+      });
+    }
+
+    console.log(`✅ Presencia actualizada: ${userId} -> ${status}`);
+
     res.json({
       success: true,
-      message: 'Funcionalidad de presencia pendiente de implementar'
+      message: 'Presencia actualizada correctamente'
     });
 
   } catch (error) {
