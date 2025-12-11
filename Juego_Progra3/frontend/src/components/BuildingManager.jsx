@@ -4,11 +4,6 @@ import resourceAPI from '../services/resourceAPI';
 import { getBuildingIcon } from '../utils/buildingIcons';
 
 export default function BuildingManager({ userId, userResources, userBuildings, onResourceChange, onBuildingsChange }) {
-  // Verificar que userBuildings sea válido
-  if (!userBuildings || !Array.isArray(userBuildings)) {
-    return <div>Cargando edificios...</div>;
-  }
-
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [buildingCosts, setBuildingCosts] = useState({}); // Cachear costos del backend
@@ -38,6 +33,11 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
       });
     }
   }, [userBuildings]);
+
+  // Verificar que userBuildings sea válido
+  if (!userBuildings || !Array.isArray(userBuildings)) {
+    return <div>Cargando edificios...</div>;
+  }
 
   const upgradeBuilding = async (building) => {
     console.log('🎯 upgradeBuilding called for:', building.id);
