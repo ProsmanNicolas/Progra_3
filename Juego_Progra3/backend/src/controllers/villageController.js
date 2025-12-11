@@ -2318,16 +2318,30 @@ const canUpgradeBuildingEndpoint = async (req, res) => {
       });
     }
 
-    // Obtener ayuntamiento
+    // Obtener tipo de Ayuntamiento primero
+    const { data: townHallType, error: townHallTypeError } = await supabase
+      .from('building_types')
+      .select('id')
+      .eq('name', 'Ayuntamiento')
+      .single();
+
+    if (townHallTypeError || !townHallType) {
+      return res.status(500).json({
+        success: false,
+        message: 'Error al buscar tipo de edificio Ayuntamiento'
+      });
+    }
+
+    // Obtener ayuntamiento del usuario
     const { data: townHall } = await supabase
       .from('user_buildings')
       .select('level, building_types(name)')
       .eq('user_id', userId)
-      .eq('building_types.name', 'Ayuntamiento')
+      .eq('building_type_id', townHallType.id)
       .single();
 
     const townHallLevel = townHall?.level || 1;
-    const isAyuntamiento = building.building_types.name === 'Ayuntamiento';
+    const isAyuntamiento = building.building_type_id === townHallType.id;
 
     // Validar si puede mejorar
     const canUpgrade = isAyuntamiento 
