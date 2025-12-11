@@ -950,7 +950,17 @@ const executeBattle = async (req, res) => {
     for (const [troopTypeId, quantity] of Object.entries(attackingTroops)) {
       if (quantity > 0) {
         const losses = Math.floor(quantity * lossPercentage);
-        troopLosses[troopTypeId] = losses;
+        
+        // Obtener nombre de tropa para el registro
+        const { data: troopType } = await supabase
+          .from('troop_types')
+          .select('name')
+          .eq('id', parseInt(troopTypeId))
+          .single();
+        
+        if (troopType) {
+          troopLosses[troopType.name] = losses;
+        }
         
         // Actualizar tropas del atacante
         const newQuantity = attackerTroopsMap[parseInt(troopTypeId)] - losses;

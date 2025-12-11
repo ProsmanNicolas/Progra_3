@@ -11,9 +11,20 @@ export default function TownHallUpgradeModal({ isOpen, onClose, townHall, userRe
   const [localUserResources, setLocalUserResources] = useState(null);
   const [townHallInfo, setTownHallInfo] = useState(null);
 
+  // Función helper para obtener el máximo de edificios según nivel (fallback local)
+  const getMaxBuildingsForLevel = (level) => {
+    switch(level) {
+      case 1: return 5;
+      case 2: return 10;
+      case 3: return 15;
+      case 4: return 25;
+      default: return 5;
+    }
+  };
+
   // Función para obtener descripción correcta basada en el nivel
   const getDescriptionForLevel = (level) => {
-    const maxBuildings = townHallInfo?.currentMaxBuildings || 5;
+    const maxBuildings = townHallInfo?.currentMaxBuildings || getMaxBuildingsForLevel(level);
     return `Nivel ${level} - Permite ${maxBuildings} edificios`;
   };
 

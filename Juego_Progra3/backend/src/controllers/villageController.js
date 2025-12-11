@@ -2236,13 +2236,28 @@ const getUpgradeCost = async (req, res) => {
 
     const baseType = building.building_types;
     const currentLevel = building.level;
-    const multiplier = Math.pow(1.5, currentLevel - 1);
+    const nextLevel = currentLevel + 1;
+
+    // Obtener costos desde building_level_config
+    const { data: levelConfig, error: configError } = await supabase
+      .from('building_level_config')
+      .select('upgrade_cost_wood, upgrade_cost_stone, upgrade_cost_food, upgrade_cost_iron')
+      .eq('building_type_id', baseType.id)
+      .eq('level', nextLevel)
+      .single();
+
+    if (configError || !levelConfig) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se encontró la configuración de costos para este nivel'
+      });
+    }
 
     const cost = {
-      wood: Math.floor(baseType.base_cost_wood * multiplier),
-      stone: Math.floor(baseType.base_cost_stone * multiplier),
-      food: Math.floor(baseType.base_cost_food * multiplier),
-      iron: Math.floor(baseType.base_cost_iron * multiplier)
+      wood: levelConfig.upgrade_cost_wood || 0,
+      stone: levelConfig.upgrade_cost_stone || 0,
+      food: levelConfig.upgrade_cost_food || 0,
+      iron: levelConfig.upgrade_cost_iron || 0
     };
 
     res.json({
@@ -2251,7 +2266,7 @@ const getUpgradeCost = async (req, res) => {
         buildingId,
         buildingName: baseType.name,
         currentLevel,
-        nextLevel: currentLevel + 1,
+        nextLevel,
         cost
       }
     });
