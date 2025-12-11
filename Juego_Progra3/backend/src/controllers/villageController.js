@@ -2151,15 +2151,29 @@ const getBuildingLimits = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // Obtener tipo de Ayuntamiento primero
+    const { data: townHallType, error: townHallTypeError } = await supabase
+      .from('building_types')
+      .select('id')
+      .eq('name', 'Ayuntamiento')
+      .single();
+
+    if (townHallTypeError || !townHallType) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tipo de Ayuntamiento no encontrado'
+      });
+    }
+
     // Obtener ayuntamiento del usuario
     const { data: townHall, error: townHallError } = await supabase
       .from('user_buildings')
       .select('*, building_types(*)')
       .eq('user_id', userId)
-      .eq('building_types.name', 'Ayuntamiento')
+      .eq('building_type_id', townHallType.id)
       .single();
 
-    if (townHallError) {
+    if (townHallError || !townHall) {
       return res.status(404).json({
         success: false,
         message: 'No se encontró el ayuntamiento'

@@ -356,7 +356,7 @@ class VillageAPI {
   // Obtener límites de edificios según nivel del ayuntamiento
   async getBuildingLimits() {
     try {
-      return await this.makeRequest(`${this.baseURL}/api/village/building-limits`, {
+      return await this.makeRequest(`${this.baseURL}/api/village/townhall-info`, {
         method: 'GET'
       });
     } catch (error) {

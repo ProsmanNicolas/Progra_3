@@ -44,7 +44,15 @@ export default function GameMap({ userId, userResources, userBuildings, onResour
     try {
       const response = await villageAPI.getBuildingLimits();
       if (response.success) {
-        setBuildingLimits(response.data);
+        // Adaptar datos de townhall-info al formato esperado
+        const data = response.data;
+        setBuildingLimits({
+          townHallLevel: data.currentLevel,
+          maxLevel: data.maxLevel,
+          currentMaxBuildings: data.currentMaxBuildings,
+          nextMaxBuildings: data.nextMaxBuildings,
+          canUpgrade: data.canUpgrade
+        });
       }
     } catch (error) {
       console.error('Error cargando límites de edificios:', error);
@@ -53,12 +61,25 @@ export default function GameMap({ userId, userResources, userBuildings, onResour
 
   // Función para obtener límites (ahora solo retorna el estado)
   const getBuildingLimit = () => {
-    return buildingLimits || {
-      current: 0,
-      max: 5,
-      remaining: 5,
-      townHallLevel: 1,
-      isAtLimit: false
+    if (!buildingLimits) {
+      return {
+        current: 0,
+        max: 5,
+        remaining: 5,
+        townHallLevel: 1,
+        isAtLimit: false
+      };
+    }
+    
+    const currentBuildingCount = userBuildings ? userBuildings.length : 0;
+    const maxBuildings = buildingLimits.currentMaxBuildings || 5;
+    
+    return {
+      current: currentBuildingCount,
+      max: maxBuildings,
+      remaining: maxBuildings - currentBuildingCount,
+      townHallLevel: buildingLimits.townHallLevel || 1,
+      isAtLimit: currentBuildingCount >= maxBuildings
     };
   };
 
