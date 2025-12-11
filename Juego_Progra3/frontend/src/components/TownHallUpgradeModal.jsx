@@ -113,9 +113,6 @@ export default function TownHallUpgradeModal({ isOpen, onClose, townHall, userRe
     const hasIron = (resources.iron || 0) >= (nextLevelConfig.upgrade_cost_iron || 0);
     
     return hasWood && hasStone && hasFood && hasIron;
-    });
-    
-    return result;
   };
 
   const handleUpgrade = async () => {

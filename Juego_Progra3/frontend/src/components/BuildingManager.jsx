@@ -137,11 +137,11 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
   };
 
   const groupedBuildings = userBuildings.reduce((acc, building) => {
-      building_types: building.building_types,
-      building_type_id: building.building_type_id,
-      name: building.name,
-      type: building.type
-    });
+    const type = building.building_types?.name || building.name || 'Edificio Desconocido';
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(building);
+    return acc;
+  }, {});
     
     const type = building.building_types?.name || building.name || 'Edificio Desconocido';
     if (!acc[type]) acc[type] = [];
