@@ -11,7 +11,8 @@ app.use(cors({
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'http://localhost:3000',
     'http://localhost:3001',
-    'http://localhost:3002'
+    'http://localhost:3002',
+    /\.vercel\.app$/  // Permite cualquier dominio de Vercel
   ],
   credentials: true
 }));
@@ -99,13 +100,10 @@ app.use((error, req, res, next) => {
   });
 });
 
-// Exportar la app para Vercel
 module.exports = app;
 
-// Solo iniciar servidor si NO está en Vercel (desarrollo local)
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () => {
-    console.log(`Servidor escuchando en http://localhost:${PORT}`);
-  });
-}
+// Iniciar el servidor
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Servidor escuchando en puerto ${PORT}`);
+});
