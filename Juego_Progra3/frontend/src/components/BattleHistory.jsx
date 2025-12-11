@@ -52,16 +52,22 @@ const BattleHistory = () => {
   const formatTroopLosses = (losses) => {
     if (!losses || Object.keys(losses).length === 0) return 'Ninguna';
     
+    console.log('📊 Formateo de pérdidas de tropas:', losses);
+    
     return (
       <div className="flex flex-wrap gap-2">
         {Object.entries(losses)
           .filter(([_, quantity]) => quantity > 0)
-          .map(([troopType, quantity]) => (
-            <span key={troopType} className="inline-flex items-center gap-1 bg-red-900 bg-opacity-30 px-2 py-1 rounded border border-red-700">
-              <span className="text-lg">{getTroopIcon(troopType)}</span>
-              <span className="font-semibold">{quantity}</span>
-            </span>
-          ))}
+          .map(([troopType, quantity]) => {
+            const icon = getTroopIcon(troopType);
+            console.log(`  - Tropa: "${troopType}" -> Icono: ${icon}`);
+            return (
+              <span key={troopType} className="inline-flex items-center gap-1 bg-red-900 bg-opacity-30 px-2 py-1 rounded border border-red-700">
+                <span className="text-lg">{icon}</span>
+                <span className="font-semibold">{quantity}</span>
+              </span>
+            );
+          })}
       </div>
     );
   };
