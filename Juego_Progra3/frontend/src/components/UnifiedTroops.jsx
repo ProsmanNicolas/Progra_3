@@ -12,6 +12,7 @@ const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = 
   const [activeTab, setActiveTab] = useState('barracks'); // barracks, magic
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date()); // Para actualizar temporizadores
+  const [canAffordCache, setCanAffordCache] = useState({}); // Cache para validación de recursos
 
   // Separar tropas por edificio
   const barracksTypes = ['Soldado', 'Arquero', 'Jinete', 'Cañón'];
@@ -324,8 +325,24 @@ const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = 
     return building ? building.level : 0;
   };
 
-// Validar si puede costear tropas (llamando al backend)
-  const canAfford = async (troop, qty) => {
+  // Validar si puede costear tropas (versión simplificada para UI)
+  const canAffordUI = (troop, qty) => {
+    if (!troop || !userResources) return false;
+    const totalCost = {
+      wood: (troop.wood_cost || 0) * qty,
+      stone: (troop.stone_cost || 0) * qty,
+      food: (troop.food_cost || 0) * qty,
+      iron: (troop.iron_cost || 0) * qty
+    };
+    
+    return userResources.wood >= totalCost.wood &&
+           userResources.stone >= totalCost.stone &&
+           userResources.food >= totalCost.food &&
+           userResources.iron >= totalCost.iron;
+  };
+
+  // Validar si puede costear tropas (llamando al backend) - solo para el entrenamiento real
+  const canAffordBackend = async (troop, qty) => {
     try {
       const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
       const token = localStorage.getItem('auth-token');
@@ -598,7 +615,7 @@ const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = 
                 </div>
 
                 {canTrainTroop ? (
-                  canAffordTroop ? (
+                  canAffordBasic ? (
                     <button
                       onClick={() => {
                         setSelectedTroop(troop);
@@ -716,9 +733,9 @@ const UnifiedTroops = ({ user, userResources, setUserResources, userBuildings = 
                   startTraining(selectedTroop, quantity);
                   setSelectedTroop(null);
                 }}
-                disabled={!canAfford(selectedTroop, quantity)}
+                disabled={!canAffordUI(selectedTroop, quantity)}
                 className={`flex-1 py-2 px-4 rounded font-semibold ${
-                  canAfford(selectedTroop, quantity)
+                  canAffordUI(selectedTroop, quantity)
                     ? 'bg-green-500 hover:bg-green-600 text-white'
                     : 'bg-gray-400 text-white cursor-not-allowed'
                 }`}

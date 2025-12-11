@@ -27,12 +27,19 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
 
   // Cargar costos para todos los edificios al montar
   useEffect(() => {
-    if (userBuildings) {
-      userBuildings.forEach(building => {
-        loadUpgradeCost(building.id);
-      });
+    if (userBuildings && userBuildings.length > 0) {
+      const loadAllCosts = async () => {
+        try {
+          for (const building of userBuildings) {
+            await loadUpgradeCost(building.id);
+          }
+        } catch (error) {
+          console.error('Error cargando costos:', error);
+        }
+      };
+      loadAllCosts();
     }
-  }, [userBuildings]);
+  }, [userBuildings?.length]); // Solo depender del length
 
   // Verificar que userBuildings sea válido
   if (!userBuildings || !Array.isArray(userBuildings)) {
@@ -61,8 +68,6 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
     setLoading(true);
 
     try {
-      const cost = calculateUpgradeCost(building);
-      console.log(`🔧 Frontend: Costo calculado para mostrar:`, cost);
       console.log(`🔧 Frontend: Iniciando upgrade de edificio ID ${building.id} de nivel ${building.level} a ${building.level + 1}`);
       
       // ✅ El backend se encarga de descontar los recursos automáticamente
@@ -212,46 +217,28 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
                       </div>
 
                       <div className="flex gap-2">
-                        {/* Solo mostrar botón de mejorar si NO es ayuntamiento */}
-                        {building.building_types?.name !== 'Ayuntamiento' && (
-                          <button
-                            onClick={() => upgradeBuilding(building)}
-                            disabled={!canAfford || !canUpgrade || loading}
-                            className={`flex-1 px-3 py-2 text-sm font-semibold rounded-lg transition-all ${
-                              canAfford && canUpgrade && !loading
-                                ? 'btn-primary'
-                                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                            }`}
-                            title={!canUpgrade ? 'No puedes mejorar: el nivel de tu ayuntamiento es insuficiente o ya alcanzaste el nivel máximo (4)' : `Costo: ${formatCost(upgradeCost)}`}
-                          >
-                            ⬆️ Mejorar
-                          </button>
-                        )}
+                        <button
+                          onClick={() => upgradeBuilding(building)}
+                          disabled={loading || building.level >= 4}
+                          className={`flex-1 py-2 px-3 rounded font-semibold text-sm transition-colors ${
+                            building.level >= 4
+                              ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                              : canAfford && !loading
+                              ? 'bg-green-600 text-white hover:bg-green-700'
+                              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                          }`}
+                        >
+                          {building.level >= 4 ? '✅ Máximo' : `⬆️ Mejorar (${formatCost(upgradeCost)})`}
+                        </button>
                         
-                        {/* Para el ayuntamiento, mostrar mensaje informativo */}
-                        {building.building_types?.name === 'Ayuntamiento' && (
-                          <div className="flex-1 px-3 py-2 text-sm rounded-lg bg-blue-500 bg-opacity-20 border border-blue-500 text-blue-300 text-center font-semibold">
-                            Mejora desde el mapa de la aldea
-                          </div>
-                        )}
-                        
-                        {building.building_types?.name !== 'Ayuntamiento' && (
-                          <button
-                            onClick={() => destroyBuilding(building)}
-                            disabled={loading}
-                            className="px-3 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-600 disabled:text-gray-400 font-semibold transition-all"
-                          >
-                            🗑️
-                          </button>
-                        )}
+                        <button
+                          onClick={() => destroyBuilding(building)}
+                          disabled={loading || building.building_types?.name === 'Ayuntamiento'}
+                          className="py-2 px-3 bg-red-600 text-white rounded font-semibold text-sm hover:bg-red-700 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                        >
+                          🗑️
+                        </button>
                       </div>
-
-                      {/* Solo mostrar costos de mejora si NO es ayuntamiento */}
-                      {building.building_types?.name !== 'Ayuntamiento' && (
-                        <div className="mt-3 pt-3 border-t border-gray-700 text-xs text-gray-400">
-                          <span className="font-semibold">Costo mejora:</span> {formatCost(upgradeCost)}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -270,23 +257,6 @@ export default function BuildingManager({ userId, userResources, userBuildings, 
                       (buildings.reduce((sum, b) => sum + b.level, 0) / buildings.length).toFixed(1)
                     }</span>
                   </div>
-                  {buildings[0].building_types?.type === 'resource_generator' && (
-                    <>
-                      <div>
-                        <span className="font-semibold text-yellow-400">Edificios de este tipo:</span> 
-                        <span className="text-green-400 ml-2 font-semibold">{buildings.length}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-yellow-400">Recurso:</span> 
-                        <span className="text-white ml-2">{
-                          buildings[0].building_types?.resource_type === 'wood' ? '🪵 Madera' :
-                          buildings[0].building_types?.resource_type === 'stone' ? '🪨 Piedra' :
-                          buildings[0].building_types?.resource_type === 'food' ? '🍞 Comida' :
-                          buildings[0].building_types?.resource_type === 'iron' ? '⚙️ Hierro' : ''
-                        }</span>
-                      </div>
-                    </>
-                  )}
                 </div>
               </div>
             </div>
