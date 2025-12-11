@@ -1493,13 +1493,14 @@ const upgradeBuilding = async (req, res) => {
     const isUpgradingTownHall = building.building_type_id === townHallType.id;
     
     console.log(`🔍 Debug - isUpgradingTownHall: ${isUpgradingTownHall}`);
+    console.log(`🔍 Debug - Nivel actual: ${building.level}, Nuevo nivel: ${newLevel}, Nivel Ayuntamiento: ${townHall.level}`);
     
     // Los edificios pueden igualar el nivel del Ayuntamiento, pero no superarlo
-    if (!isUpgradingTownHall && building.level >= townHall.level) {
-      console.log(`❌ El edificio ya está al nivel máximo permitido por el Ayuntamiento (${townHall.level})`);
+    if (!isUpgradingTownHall && newLevel > townHall.level) {
+      console.log(`❌ El nuevo nivel (${newLevel}) excedería el nivel del Ayuntamiento (${townHall.level})`);
       return res.status(400).json({ 
         success: false, 
-        message: `El edificio ya está al nivel máximo permitido por tu Ayuntamiento. Mejora tu Ayuntamiento primero.` 
+        message: `El edificio no puede superar el nivel de tu Ayuntamiento (nivel ${townHall.level}). Mejora tu Ayuntamiento primero.` 
       });
     }
 
