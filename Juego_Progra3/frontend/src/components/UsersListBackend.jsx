@@ -32,10 +32,10 @@ const UsersListBackend = ({ currentUser, onStartPrivateChat }) => {
   };
 
   const handleStartChat = (user) => {
-    // Crear objeto de conversación
+    // Crear objeto de conversación con nombre de aldea
     const conversation = {
       otherUserId: user.user_id,
-      targetUserName: user.user?.display_name || user.village_name || `Usuario ${user.user_id?.slice(-4)}`
+      targetUserName: user.village_name || user.user?.display_name || `Usuario ${user.user_id?.slice(-4)}`
     };
     
     onStartPrivateChat(conversation);
@@ -90,9 +90,6 @@ const UsersListBackend = ({ currentUser, onStartPrivateChat }) => {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-semibold text-sm text-white">
-                    {user.user?.display_name || `Usuario ${user.user_id?.slice(-4)}`}
-                  </div>
-                  <div className="text-xs text-gray-400">
                     🏰 {user.village_name || 'Aldea'}
                   </div>
                 </div>

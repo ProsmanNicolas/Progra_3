@@ -114,10 +114,10 @@ const ChatSystem = ({ user }) => {
     }
   };
 
-  // Formatear nombre de usuario
+  // Formatear nombre de usuario (muestra nombre de aldea)
   const getUserName = (user) => {
     if (!user) return 'Usuario';
-    return user.display_name || user.email?.split('@')[0] || 'Usuario';
+    return user.village_name || user.display_name || user.email?.split('@')[0] || 'Usuario';
   };
 
   // Formatear tiempo
@@ -216,17 +216,27 @@ const ChatSystem = ({ user }) => {
           
           const newMessage = payload.new;
           
-          // Cargar datos del usuario que envió el mensaje
+          // Cargar datos del usuario que envió el mensaje (incluyendo aldea)
           const { data: userData } = await supabase
             .from('users')
-            .select('id, username, email')
+            .select(`
+              id, 
+              username, 
+              email,
+              villages (
+                village_name
+              )
+            `)
             .eq('id', newMessage.user_id)
             .single();
           
           // Agregar datos del usuario al mensaje
           const messageWithUser = {
             ...newMessage,
-            user: userData
+            user: {
+              ...userData,
+              village_name: userData?.villages?.[0]?.village_name
+            }
           };
           
           // Actualizar mensajes globales
