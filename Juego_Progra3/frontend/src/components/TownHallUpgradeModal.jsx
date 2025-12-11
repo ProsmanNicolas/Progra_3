@@ -173,7 +173,7 @@ export default function TownHallUpgradeModal({ isOpen, onClose, townHall, userRe
           >
             ×
           </button>
-        </div>townHallInfo?.currentMaxBuildings || 5
+        </div>
 
         {loading ? (
           <div className="text-center py-8">
