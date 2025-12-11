@@ -169,7 +169,7 @@ const login = async (req, res) => {
           user_id: userData.id,
           village_name: `Aldea de ${userData.username}`,
           village_icon: '🏘️',
-          village_motto: '¡Mi nueva aldea!'
+          description: '¡Mi nueva aldea!'
         });
 
       if (villageError) {
