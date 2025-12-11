@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext, createContext } from 'react';
 import authAPI from '../services/authAPI';
+import chatAPI from '../services/chatAPI';
 
 // Crear contexto de autenticación
 const AuthContext = createContext();
@@ -81,6 +82,13 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     setLoading(true);
     try {
+      // Actualizar presencia a offline antes de logout
+      try {
+        await chatAPI.updatePresence('offline');
+      } catch (presenceError) {
+        console.warn('Error actualizando presencia en logout:', presenceError);
+      }
+
       await authAPI.logout();
     } catch (error) {
       console.error('Error en logout:', error);
@@ -190,6 +198,13 @@ export const useAuthService = () => {
   const logout = async () => {
     setLoading(true);
     try {
+      // Actualizar presencia a offline antes de logout
+      try {
+        await chatAPI.updatePresence('offline');
+      } catch (presenceError) {
+        console.warn('Error actualizando presencia en logout:', presenceError);
+      }
+
       await authAPI.logout();
     } catch (error) {
       console.error('Error en logout:', error);

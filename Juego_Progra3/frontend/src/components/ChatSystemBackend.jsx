@@ -181,61 +181,80 @@ const ChatSystem = ({ user }) => {
         loadOnlineUsers();
       }, 10000);
 
-      // Limpiar intervalos al desmontar
+      // Heartbeat de presencia cada 30 segundos para mantener status online
+      const presenceHeartbeat = setInterval(() => {
+        updatePresence('online');
+      }, 30000);
+
+      // Limpiar intervalos y marcar offline al desmontar o cerrar chat
       return () => {
         clearInterval(messageInterval);
         clearInterval(onlineUsersInterval);
+        clearInterval(presenceHeartbeat);
+        updatePresence('offline');
       };
     }
 
-    // Actualizar presencia al cerrar
-    return () => {
-      if (user && isOpen) {
-        updatePresence('offline');
-      }
-    };
+    // Si el chat se cierra, marcar como offline
+    if (user && !isOpen) {
+      updatePresence('offline');
+    }
   }, [user, activeTab, isOpen]);
 
-  // Suscripción en tiempo real a nuevos mensajes (solo notificaciones)
+  // Suscripción en tiempo real a nuevos mensajes
   useEffect(() => {
     if (!user || !isOpen) return;
 
-    console.log('🔔 Configurando suscripción en tiempo real...');
+    console.log('🔔 Configurando suscripción en tiempo real a mensajes...');
 
     const channel = supabase
-      .channel('chat_messages')
+      .channel('chat_realtime')
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'chat_messages' },
-        (payload) => {
-          console.log('📨 Nuevo mensaje recibido (notificación):', payload.new);
+        async (payload) => {
+          console.log('📨 Nuevo mensaje recibido:', payload.new);
           
-          // Recargar mensajes según el tab activo
-          if (activeTab === 'global' && payload.new.message_type === 'global') {
-            console.log('🔄 Recargando mensajes globales');
-            loadGlobalMessages();
-          } else if (activeTab === 'private' && payload.new.message_type === 'private') {
-            // Verificar si el mensaje es para el usuario actual
-            const isForCurrentUser = 
-              payload.new.user_id === user.id || 
-              payload.new.recipient_id === user.id;
-            
-            if (isForCurrentUser && selectedConversation) {
-              const isForCurrentConversation = 
-                (payload.new.user_id === selectedConversation.otherUserId && payload.new.recipient_id === user.id) ||
-                (payload.new.recipient_id === selectedConversation.otherUserId && payload.new.user_id === user.id);
+          const newMessage = payload.new;
+          
+          // Cargar datos del usuario que envió el mensaje
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id, username, email')
+            .eq('id', newMessage.user_id)
+            .single();
+          
+          // Agregar datos del usuario al mensaje
+          const messageWithUser = {
+            ...newMessage,
+            user: userData
+          };
+          
+          // Actualizar mensajes globales
+          if (activeTab === 'global' && newMessage.message_type === 'global') {
+            console.log('✅ Agregando mensaje global en tiempo real');
+            setMessages(prevMessages => [...prevMessages, messageWithUser]);
+            scrollToBottom();
+          } 
+          // Actualizar mensajes privados
+          else if (activeTab === 'private' && newMessage.message_type === 'private' && selectedConversation) {
+            const isForCurrentConversation = 
+              (newMessage.user_id === selectedConversation.otherUserId && newMessage.recipient_id === user.id) ||
+              (newMessage.recipient_id === selectedConversation.otherUserId && newMessage.user_id === user.id);
               
-              if (isForCurrentConversation) {
-                console.log('🔄 Recargando mensajes privados');
-                loadPrivateMessages(selectedConversation.otherUserId);
-              }
+            if (isForCurrentConversation) {
+              console.log('✅ Agregando mensaje privado en tiempo real');
+              setMessages(prevMessages => [...prevMessages, messageWithUser]);
+              scrollToBottom();
             }
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('🔔 Estado de suscripción realtime:', status);
+      });
 
     return () => {
-      console.log('🔕 Desuscribiendo de notificaciones en tiempo real');
+      console.log('🔕 Desuscribiendo de mensajes en tiempo real');
       supabase.removeChannel(channel);
     };
   }, [user, activeTab, isOpen, selectedConversation]);
