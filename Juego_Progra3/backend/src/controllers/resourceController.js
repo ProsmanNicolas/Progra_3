@@ -343,6 +343,11 @@ const calculateOfflineResources = async (req, res) => {
     let totalStone = 0;
     let totalFood = 0;
     let totalIron = 0;
+    
+    let woodPerMinute = 0;
+    let stonePerMinute = 0;
+    let foodPerMinute = 0;
+    let ironPerMinute = 0;
 
     // Calcular recursos generados por cada edificio
     resourceGenerators.forEach(building => {
@@ -358,15 +363,19 @@ const calculateOfflineResources = async (req, res) => {
       switch(resourceType) {
         case 'wood':
           totalWood += totalGenerated;
+          woodPerMinute += resourcesPerMinute;
           break;
         case 'stone':
           totalStone += totalGenerated;
+          stonePerMinute += resourcesPerMinute;
           break;
         case 'food':
           totalFood += totalGenerated;
+          foodPerMinute += resourcesPerMinute;
           break;
         case 'iron':
           totalIron += totalGenerated;
+          ironPerMinute += resourcesPerMinute;
           break;
       }
     });
@@ -379,7 +388,13 @@ const calculateOfflineResources = async (req, res) => {
         food: Math.floor(totalFood),
         iron: Math.floor(totalIron),
         totalMinutes: minutesOffline,
-        buildingsCount: resourceGenerators.length
+        buildingsCount: resourceGenerators.length,
+        productionRates: {
+          wood: Math.floor(woodPerMinute),
+          stone: Math.floor(stonePerMinute),
+          food: Math.floor(foodPerMinute),
+          iron: Math.floor(ironPerMinute)
+        }
       }
     });
 

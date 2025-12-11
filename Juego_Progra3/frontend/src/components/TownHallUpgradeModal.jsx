@@ -9,36 +9,37 @@ export default function TownHallUpgradeModal({ isOpen, onClose, townHall, userRe
   const [loading, setLoading] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
   const [localUserResources, setLocalUserResources] = useState(null);
-  const [buildingLimits, setBuildingLimits] = useState(null);
+  const [townHallInfo, setTownHallInfo] = useState(null);
 
   // Función para obtener descripción correcta basada en el nivel
-  const getDescriptionForLevel = async (level) => {
-    // Cargar desde backend si no tenemos los límites
-    if (!buildingLimits) {
-      try {
-        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-        const token = localStorage.getItem('auth-token');
-        const response = await fetch(`${API_BASE_URL}/api/village/building-limits`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const result = await response.json();
-        if (result.success) {
-          setBuildingLimits(result.data);
-          return `Nivel ${level} - Permite ${result.data.maxBuildings} edificios adicionales`;
-        }
-      } catch (error) {
-        console.error('Error cargando límites:', error);
-      }
-    }
-    return `Nivel ${level}`;
+  const getDescriptionForLevel = (level) => {
+    const maxBuildings = townHallInfo?.currentMaxBuildings || 5;
+    return `Nivel ${level} - Permite ${maxBuildings} edificios`;
   };
 
   useEffect(() => {
     if (isOpen && townHall) {
+      loadTownHallInfo();
       loadLevelConfigs();
       loadUserResourcesIfNeeded();
     }
   }, [isOpen, townHall]);
+
+  const loadTownHallInfo = async () => {
+    try {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      const token = localStorage.getItem('auth-token');
+      const response = await fetch(`${API_BASE_URL}/api/village/townhall-info`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const result = await response.json();
+      if (result.success) {
+        setTownHallInfo(result.data);
+      }
+    } catch (error) {
+      console.error('Error cargando info del ayuntamiento:', error);
+    }
+  };
 
   const loadUserResourcesIfNeeded = async () => {
     try {
@@ -154,7 +155,7 @@ export default function TownHallUpgradeModal({ isOpen, onClose, townHall, userRe
           >
             ×
           </button>
-        </div>
+        </div>townHallInfo?.currentMaxBuildings || 5
 
         {loading ? (
           <div className="text-center py-8">
@@ -187,7 +188,7 @@ export default function TownHallUpgradeModal({ isOpen, onClose, townHall, userRe
                 
                 {/* Beneficios */}
                 <div className="space-y-1 text-sm mb-4">
-                  <p className="text-gray-200">📦 Máximo edificios: <span className="font-semibold text-white">{getMaxBuildingsForLevel(townHall.level + 1)}</span></p>
+                  <p className="text-gray-200">📦 Máximo edificios: <span className="font-semibold text-white">{townHallInfo?.nextMaxBuildings || 10}</span></p>
                   <p className="text-gray-200">🔓 Nuevos edificios: <span className="font-semibold text-white">{nextLevelConfig.unlocks_buildings?.join(', ') || 'Mantiene los actuales'}</span></p>
                   <p className="text-gray-200">⏱️ Tiempo: <span className="font-semibold text-white">{nextLevelConfig.upgrade_time_minutes || 'Instantáneo'} {nextLevelConfig.upgrade_time_minutes ? 'minutos' : ''}</span></p>
                 </div>

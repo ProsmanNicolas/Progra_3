@@ -5,6 +5,7 @@ const OfflineCollector = ({ user, onResourcesCollected }) => {
   const [offlineTime, setOfflineTime] = useState(0);
   const [availableResources, setAvailableResources] = useState(null);
   const [isCollecting, setIsCollecting] = useState(false);
+  const [productionRates, setProductionRates] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -79,6 +80,11 @@ const OfflineCollector = ({ user, onResourcesCollected }) => {
           console.log('💰 Recursos offline calculados por backend:', response.data);
           setOfflineTime(minutesOffline);
           setAvailableResources(response.data);
+          
+          // Guardar las tasas de producción si vienen del backend
+          if (response.data.productionRates) {
+            setProductionRates(response.data.productionRates);
+          }
         } else {
           console.log('❌ Error calculando recursos offline:', response);
           setOfflineTime(0);
@@ -200,7 +206,11 @@ const OfflineCollector = ({ user, onResourcesCollected }) => {
       </button>
 
       <p className="text-center text-green-200 text-xs mt-2">
-        Producción: 5 madera, 3 piedra, 4 comida, 2 hierro por minuto
+        {productionRates ? (
+          <>Producción por minuto: {productionRates.wood > 0 && `🪵${productionRates.wood}`} {productionRates.stone > 0 && `🪨${productionRates.stone}`} {productionRates.food > 0 && `🍞${productionRates.food}`} {productionRates.iron > 0 && `⚙️${productionRates.iron}`}</>
+        ) : (
+          'Calculando producción...'
+        )}
       </p>
     </div>
   );

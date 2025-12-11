@@ -913,10 +913,31 @@ const executeBattle = async (req, res) => {
       defensePower += troopPower * assignment.quantity;
     });
 
-    console.log('🛡️ Poder defensivo calculado:', defensePower);
+    // 🧱 Agregar poder de los muros a la defensa
+    const { data: muroType } = await supabase
+      .from('building_types')
+      .select('id')
+      .eq('name', 'Muro')
+      .single();
 
-    // 4. Determinar resultado de la batalla
-    const battleResult = attackPower >= defensePower ? 'victory' : 'defeat';
+    if (muroType) {
+      const { data: muros } = await supabase
+        .from('user_buildings')
+        .select('level')
+        .eq('user_id', defenderId)
+        .eq('building_type_id', muroType.id);
+
+      if (muros && muros.length > 0) {
+        const wallPower = muros.reduce((sum, muro) => sum + (muro.level * 20), 0);
+        defensePower += wallPower;
+        console.log(`🧱 Poder de muros agregado: ${wallPower} (${muros.length} muros)`);
+      }
+    }
+
+    console.log('🛡️ Poder defensivo total calculado:', defensePower);
+
+    // 4. Determinar resultado de la batalla (empate gana defensor)
+    const battleResult = attackPower > defensePower ? 'victory' : 'defeat';
     const powerDifference = Math.abs(attackPower - defensePower);
     
     // 5. Calcular pérdidas (siempre hay pérdidas, pero menos si ganas por mucho)
@@ -1005,7 +1026,75 @@ const executeBattle = async (req, res) => {
       }
     }
 
-    console.log(`🏆 Batalla completada: ${battleResult}, pérdidas: ${JSON.stringify(troopLosses)}, recursos robados: ${JSON.stringify(resourcesStolen)}`);
+    // 7. Calcular y aplicar pérdidas a las tropas defensoras
+    const defenderTroopLosses = {};
+    const defenderLossPercentage = battleResult === 'defeat' 
+      ? Math.max(0.1, 0.5 - (powerDifference / (attackPower + defensePower))) // 10-50% si defensor gana
+      : Math.max(0.5, 0.8 + (powerDifference / (attackPower + defensePower))); // 50-80% si defensor pierde
+
+    for (const assignment of defenderAssignments) {
+      if (assignment.quantity > 0) {
+        const losses = Math.floor(assignment.quantity * defenderLossPercentage);
+        const newQuantity = assignment.quantity - losses;
+        
+        // Obtener nombre de tropa para el registro
+        const { data: troopType } = await supabase
+          .from('troop_types')
+          .select('name')
+          .eq('id', assignment.troop_type_id)
+          .single();
+        
+        if (troopType) {
+          defenderTroopLosses[troopType.name] = losses;
+        }
+
+        if (newQuantity <= 0) {
+          // Eliminar asignación si no quedan tropas
+          await supabase
+            .from('defense_assignments')
+            .delete()
+            .eq('user_id', defenderId)
+            .eq('troop_type_id', assignment.troop_type_id);
+        } else {
+          // Actualizar cantidad en defense_assignments
+          await supabase
+            .from('defense_assignments')
+            .update({ quantity: newQuantity })
+            .eq('user_id', defenderId)
+            .eq('troop_type_id', assignment.troop_type_id);
+        }
+
+        // También actualizar user_troops del defensor
+        const { data: defenderTroop } = await supabase
+          .from('user_troops')
+          .select('quantity')
+          .eq('user_id', defenderId)
+          .eq('troop_type_id', assignment.troop_type_id)
+          .single();
+
+        if (defenderTroop) {
+          const newUserTroopQuantity = defenderTroop.quantity - losses;
+          if (newUserTroopQuantity <= 0) {
+            await supabase
+              .from('user_troops')
+              .delete()
+              .eq('user_id', defenderId)
+              .eq('troop_type_id', assignment.troop_type_id);
+          } else {
+            await supabase
+              .from('user_troops')
+              .update({ quantity: newUserTroopQuantity })
+              .eq('user_id', defenderId)
+              .eq('troop_type_id', assignment.troop_type_id);
+          }
+        }
+      }
+    }
+
+    console.log(`🏆 Batalla completada: ${battleResult}`);
+    console.log(`💀 Pérdidas atacante: ${JSON.stringify(troopLosses)}`);
+    console.log(`💀 Pérdidas defensor: ${JSON.stringify(defenderTroopLosses)}`);
+    console.log(`💰 Recursos robados: ${JSON.stringify(resourcesStolen)}`);
 
     // Registrar la batalla en el historial
     try {
@@ -1022,7 +1111,7 @@ const executeBattle = async (req, res) => {
         stolen_food: resourcesStolen.food,
         stolen_iron: resourcesStolen.iron,
         attacker_troop_losses: troopLosses,
-        defender_troop_losses: {}, // Por ahora vacío, el defensor no pierde tropas en esta implementación
+        defender_troop_losses: defenderTroopLosses,
         attacking_troops: attackingTroops,
         notes: null
       });

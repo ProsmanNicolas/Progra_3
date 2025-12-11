@@ -1392,34 +1392,38 @@ const upgradeBuilding = async (req, res) => {
     // 💰 VALIDAR RECURSOS PARA LA MEJORA
     console.log('💰 Verificando recursos para la mejora...');
     
-    // Calcular costo de mejora basado en el nivel ACTUAL (antes de mejorar)
-    const baseCosts = {
-      wood: building.building_types.base_cost_wood || 0,
-      stone: building.building_types.base_cost_stone || 0,
-      food: building.building_types.base_cost_food || 0,
-      iron: building.building_types.base_cost_iron || 0
-    };
+    // 🔍 Obtener costos de mejora desde building_level_config
+    const nextLevel = building.level + 1;
+    const { data: levelConfig, error: levelConfigError } = await supabase
+      .from('building_level_config')
+      .select('upgrade_cost_wood, upgrade_cost_stone, upgrade_cost_food, upgrade_cost_iron')
+      .eq('building_type_id', building.building_type_id)
+      .eq('level', nextLevel)
+      .single();
     
-    // ✅ Usar la misma fórmula que el frontend: baseCost × 1.5^(nivel-1)
-    // Esto calcula el costo para mejorar DESDE el nivel actual
-    const currentLevel = building.level;
-    const multiplier = Math.pow(1.5, currentLevel - 1);
+    if (levelConfigError || !levelConfig) {
+      console.log('❌ No se encontró configuración de nivel para nivel', nextLevel);
+      return res.status(400).json({
+        success: false,
+        message: `No hay configuración de mejora disponible para el nivel ${nextLevel}`
+      });
+    }
     
     const upgradeCosts = {
-      wood: Math.floor(baseCosts.wood * multiplier),
-      stone: Math.floor(baseCosts.stone * multiplier),
-      food: Math.floor(baseCosts.food * multiplier),
-      iron: Math.floor(baseCosts.iron * multiplier)
+      wood: levelConfig.upgrade_cost_wood || 0,
+      stone: levelConfig.upgrade_cost_stone || 0,
+      food: levelConfig.upgrade_cost_food || 0,
+      iron: levelConfig.upgrade_cost_iron || 0
     };
     
-    console.log('💰 Nivel actual del edificio:', currentLevel);
-    console.log('💰 Multiplicador aplicado (1.5^(nivel-1)):', multiplier);
-    console.log('💰 Costos de mejora calculados:', upgradeCosts);
+    console.log('💰 Nivel actual del edificio:', building.level);
+    console.log('💰 Nivel objetivo:', nextLevel);
+    console.log('💰 Costos de mejora desde building_level_config:', upgradeCosts);
     
     // Obtener recursos actuales del usuario
     const { data: userResources, error: resourcesError } = await supabase
       .from('user_resources')
-      .select('wood, stone, food, iron')
+      .select('wood, stone, food, iron, last_updated')
       .eq('user_id', userId)
       .single();
       
@@ -1490,24 +1494,34 @@ const upgradeBuilding = async (req, res) => {
     
     console.log(`🔍 Debug - isUpgradingTownHall: ${isUpgradingTownHall}`);
     
-    if (!isUpgradingTownHall && newLevel > townHall.level) {
-      console.log(`❌ Nivel ${newLevel} excede nivel del Ayuntamiento (${townHall.level})`);
+    // Los edificios pueden igualar el nivel del Ayuntamiento, pero no superarlo
+    if (!isUpgradingTownHall && building.level >= townHall.level) {
+      console.log(`❌ El edificio ya está al nivel máximo permitido por el Ayuntamiento (${townHall.level})`);
       return res.status(400).json({ 
         success: false, 
-        message: `El edificio no puede superar el nivel del Ayuntamiento (${townHall.level})` 
+        message: `El edificio ya está al nivel máximo permitido por tu Ayuntamiento. Mejora tu Ayuntamiento primero.` 
       });
     }
 
     if (isUpgradingTownHall) {
       console.log(`🏛️ Mejorando Ayuntamiento: se permite superar el nivel actual`);
+      
+      // Validar nivel máximo del Ayuntamiento (4)
+      if (newLevel > 4) {
+        console.log(`❌ Nivel ${newLevel} excede el máximo del Ayuntamiento (4)`);
+        return res.status(400).json({ 
+          success: false, 
+          message: 'El nivel máximo del Ayuntamiento es 4' 
+        });
+      }
     }
 
-    // Validar nivel máximo
-    if (newLevel > 10) {
-      console.log(`❌ Nivel ${newLevel} excede el máximo (10)`);
+    // Validar nivel máximo general (solo para edificios que no sean Ayuntamiento)
+    if (!isUpgradingTownHall && newLevel > 4) {
+      console.log(`❌ Nivel ${newLevel} excede el máximo para edificios normales (4)`);
       return res.status(400).json({ 
         success: false, 
-        message: 'Nivel máximo de edificio es 10' 
+        message: 'El nivel máximo para edificios es 4' 
       });
     }
 
@@ -2377,6 +2391,75 @@ const getProductionRate = async (req, res) => {
   }
 };
 
+// 🏛️ Obtener información del Ayuntamiento con límites de edificios
+const getTownHallInfo = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Obtener tipo de Ayuntamiento
+    const { data: townHallType, error: townHallTypeError } = await supabase
+      .from('building_types')
+      .select('id')
+      .eq('name', 'Ayuntamiento')
+      .single();
+
+    if (townHallTypeError || !townHallType) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tipo de Ayuntamiento no encontrado'
+      });
+    }
+
+    // Obtener Ayuntamiento del usuario
+    const { data: townHall, error: townHallError } = await supabase
+      .from('user_buildings')
+      .select('*, building_types(*)')
+      .eq('user_id', userId)
+      .eq('building_type_id', townHallType.id)
+      .single();
+
+    if (townHallError || !townHall) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ayuntamiento no encontrado'
+      });
+    }
+
+    // Calcular límites según nivel del ayuntamiento
+    const getMaxBuildingsForLevel = (level) => {
+      switch(level) {
+        case 1: return 5;
+        case 2: return 10;
+        case 3: return 15;
+        case 4: return 25;
+        default: return 5;
+      }
+    };
+
+    const currentMaxBuildings = getMaxBuildingsForLevel(townHall.level);
+    const nextMaxBuildings = townHall.level < 4 ? getMaxBuildingsForLevel(townHall.level + 1) : null;
+
+    res.json({
+      success: true,
+      data: {
+        townHall,
+        currentLevel: townHall.level,
+        maxLevel: 4,
+        currentMaxBuildings,
+        nextMaxBuildings,
+        canUpgrade: townHall.level < 4
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in getTownHallInfo:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
 module.exports = {
   // 👤 Perfil de Usuario - Obtener información completa del usuario y su aldea
   getUserProfile,
@@ -2441,5 +2524,6 @@ module.exports = {
   getBuildingLimits,
   getUpgradeCost,
   canUpgradeBuildingEndpoint,
-  getProductionRate
+  getProductionRate,
+  getTownHallInfo
 };

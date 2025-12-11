@@ -24,7 +24,8 @@ const {
   getBuildingLimits,
   getUpgradeCost,
   canUpgradeBuildingEndpoint,
-  getProductionRate
+  getProductionRate,
+  getTownHallInfo
 } = require('../controllers/villageController');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -65,5 +66,6 @@ router.get('/building-limits', getBuildingLimits);
 router.get('/buildings/:buildingId/upgrade-cost', getUpgradeCost);
 router.get('/buildings/:buildingId/can-upgrade', canUpgradeBuildingEndpoint);
 router.get('/buildings/:buildingId/production-rate', getProductionRate);
+router.get('/townhall-info', getTownHallInfo);
 
 module.exports = router;

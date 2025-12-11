@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getTroopIcon } from '../utils/troopIcons';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
@@ -51,10 +52,18 @@ const BattleHistory = () => {
   const formatTroopLosses = (losses) => {
     if (!losses || Object.keys(losses).length === 0) return 'Ninguna';
     
-    return Object.entries(losses)
-      .filter(([_, quantity]) => quantity > 0)
-      .map(([troopType, quantity]) => `${quantity} ${troopType}`)
-      .join(', ');
+    return (
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(losses)
+          .filter(([_, quantity]) => quantity > 0)
+          .map(([troopType, quantity]) => (
+            <span key={troopType} className="inline-flex items-center gap-1 bg-red-900 bg-opacity-30 px-2 py-1 rounded border border-red-700">
+              <span className="text-lg">{getTroopIcon(troopType)}</span>
+              <span className="font-semibold">{quantity}</span>
+            </span>
+          ))}
+      </div>
+    );
   };
 
   const getBattleIcon = (battle) => {
@@ -261,20 +270,20 @@ const BattleHistory = () => {
               {/* Tropas perdidas */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-gray-800 bg-opacity-50 p-4 rounded-lg border-2 border-gray-700">
-                  <h4 className="font-semibold text-sm text-gray-300 mb-2">
+                  <h4 className="font-semibold text-sm text-gray-300 mb-3">
                     💀 Tropas Perdidas (Atacante)
                   </h4>
-                  <p className="text-sm text-gray-200">
+                  <div className="text-sm text-gray-200">
                     {formatTroopLosses(battle.attacker_troop_losses)}
-                  </p>
+                  </div>
                 </div>
                 <div className="bg-gray-800 bg-opacity-50 p-4 rounded-lg border-2 border-gray-700">
-                  <h4 className="font-semibold text-sm text-gray-300 mb-2">
+                  <h4 className="font-semibold text-sm text-gray-300 mb-3">
                     💀 Tropas Perdidas (Defensor)
                   </h4>
-                  <p className="text-sm text-gray-200">
+                  <div className="text-sm text-gray-200">
                     {formatTroopLosses(battle.defender_troop_losses)}
-                  </p>
+                  </div>
                 </div>
               </div>
 
