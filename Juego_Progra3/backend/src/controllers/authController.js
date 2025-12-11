@@ -153,6 +153,33 @@ const login = async (req, res) => {
       userData = userExists[0];
     }
 
+    // Verificar si el usuario tiene una aldea, si no, crearla automáticamente
+    const { data: villageExists } = await supabase
+      .from('villages')
+      .select('id')
+      .eq('user_id', userData.id);
+
+    if (!villageExists || villageExists.length === 0) {
+      console.log(`Usuario ${userData.id} sin aldea. Creando aldea automáticamente...`);
+      
+      // Crear aldea por defecto
+      const { error: villageError } = await supabase
+        .from('villages')
+        .insert({
+          user_id: userData.id,
+          village_name: `Aldea de ${userData.username}`,
+          village_icon: '🏘️',
+          village_motto: '¡Mi nueva aldea!'
+        });
+
+      if (villageError) {
+        console.error('Error al crear aldea automáticamente:', villageError);
+        // No fallar el login, solo registrar el error
+      } else {
+        console.log(`✅ Aldea creada automáticamente para ${userData.username}`);
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: 'Login exitoso',
