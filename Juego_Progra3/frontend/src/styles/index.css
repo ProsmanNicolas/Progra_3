@@ -1,0 +1,216 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fuente personalizada de juego */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+/* Variables de color temáticas */
+:root {
+  --color-primary: #d4af37;
+  --color-primary-dark: #b8941f;
+  --color-secondary: #8b4513;
+  --color-accent: #ff6b35;
+  --color-success: #28a745;
+  --color-danger: #dc3545;
+  --color-dark: #1a1a2e;
+  --color-darker: #0f0f1e;
+  --shadow-glow: 0 0 20px rgba(212, 175, 55, 0.3);
+}
+
+/* Estilos globales */
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 50%, #16213e 100%);
+  background-attachment: fixed;
+  color: #e8e8e8;
+}
+
+/* Títulos con fuente medieval */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Cinzel', serif;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+/* Animación de brillo dorado */
+@keyframes golden-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.6), 0 0 30px rgba(212, 175, 55, 0.3); }
+}
+
+/* Animación de pulso */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Animación de fadeIn */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Botones mejorados */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border: 2px solid var(--color-primary);
+  color: var(--color-darker);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+  animation: golden-glow 2s infinite;
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  border: 2px solid #4a5568;
+  color: #fff;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(74, 85, 104, 0.4);
+}
+
+/* Cards con efecto de vidrio */
+.card-glass {
+  background: rgba(26, 26, 46, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.card-glass:hover {
+  border-color: rgba(212, 175, 55, 0.4);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), var(--shadow-glow);
+  transform: translateY(-4px);
+}
+
+/* Recursos con iconos */
+.resource-item {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(139, 69, 19, 0.1) 100%);
+  border: 2px solid rgba(212, 175, 55, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.resource-item:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-glow);
+  transform: scale(1.05);
+}
+
+/* Tabs mejorados */
+.tab-button {
+  position: relative;
+  padding: 12px 24px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+}
+
+.tab-button.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+.tab-button:hover:not(.active) {
+  color: var(--color-primary);
+  opacity: 0.7;
+}
+
+/* Efectos de partículas decorativas */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-darker);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* Input mejorados */
+input, select, textarea {
+  background: rgba(26, 26, 46, 0.6) !important;
+  border: 2px solid rgba(212, 175, 55, 0.2) !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.3) !important;
+  outline: none !important;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Badge para notificaciones */
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-gold {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: var(--color-darker);
+}
+
+.badge-success {
+  background: var(--color-success);
+  color: white;
+}
+
+.badge-danger {
+  background: var(--color-danger);
+  color: white;
+}
